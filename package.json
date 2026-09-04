@@ -1,0 +1,18 @@
+{
+  "name": "voltis",
+  "version": "1.0.0",
+  "private": true,
+  "description": "VOLTIS — Payment and Ledger Infrastructure Platform",
+  "packageManager": "pnpm@11.24.0",
+  "scripts": {
+    "dev": "pnpm --parallel --filter api --filter worker --filter web dev",
+    "build": "pnpm --recursive build",
+    "test": "pnpm --recursive test",
+    "lint": "pnpm --recursive lint",
+    "typecheck": "pnpm --recursive typecheck",
+    "format": "pnpm --recursive format"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.2"
+  }
+}
