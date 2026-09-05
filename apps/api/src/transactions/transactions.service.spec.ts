@@ -31,7 +31,8 @@ describe('TransactionsService concurrency', () => {
           Transaction,
           LedgerEntry,
         ],
-        synchronize: false,
+        synchronize: true,
+        dropSchema: true,
       });
 
       await dataSource.initialize();
@@ -107,6 +108,7 @@ describe('TransactionsService concurrency', () => {
             transactionRepository,
             accountRepository,
             dataSource,
+            organizationRepository,
           );
 
         const transactionDto = {
