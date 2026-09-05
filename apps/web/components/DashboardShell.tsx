@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import {
   Activity,
@@ -431,6 +431,9 @@ export default function DashboardShell() {
   const [settingsSaving, setSettingsSaving] =
     useState(false);
 
+  const [settingsCurrency, setSettingsCurrency] =
+    useState("NGN");
+
   /*
    * ------------------------------------------------------------
    * THEME
@@ -456,6 +459,12 @@ export default function DashboardShell() {
       theme,
     );
   }, [theme]);
+
+  useEffect(() => {
+    if (organization?.defaultCurrency) {
+      setSettingsCurrency(organization.defaultCurrency);
+    }
+  }, [organization?.defaultCurrency]);
 
   /*
    * ------------------------------------------------------------
@@ -889,15 +898,17 @@ export default function DashboardShell() {
          * supplied as JSON because the exact backend
          * DTO may vary with the account engine.
          */
-        await api.accounts.get(
-          readString(parsed.id, ""),
-        );
+        await api.accounts.create({
+          organizationId,
+          ...parsed,
+        });
       }
 
       if (actionType === "transaction") {
-        await api.transactions.get(
-          readString(parsed.id, ""),
-        );
+        await api.transactions.create({
+          organizationId,
+          ...parsed,
+        });
       }
 
       if (actionType === "payment") {
@@ -928,6 +939,33 @@ export default function DashboardShell() {
       );
     } finally {
       setActionLoading(false);
+    }
+  }
+
+  async function saveSettings() {
+    if (!organizationId) {
+      return;
+    }
+
+    try {
+      setSettingsSaving(true);
+      setError("");
+
+      const updated = await api.organizations.update(
+        organizationId,
+        { defaultCurrency: settingsCurrency },
+      );
+
+      setOrganization(updated);
+      setSettingsCurrency(updated.defaultCurrency);
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : "Unable to save organization settings.",
+      );
+    } finally {
+      setSettingsSaving(false);
     }
   }
 
@@ -3556,12 +3594,23 @@ export default function DashboardShell() {
                       }
                     />
 
-                    <SettingRow
-                      label="Default currency"
-                      value={
-                        currency
-                      }
-                    />
+                    <div className="setting-row setting-row-control">
+                      <span>Default currency</span>
+                      <select
+                        className="settings-select"
+                        value={settingsCurrency}
+                        onChange={(event) =>
+                          setSettingsCurrency(event.target.value)
+                        }
+                        aria-label="Default currency"
+                      >
+                        {['NGN', 'USD', 'EUR', 'GBP', 'GHS', 'KES', 'ZAR'].map((code) => (
+                          <option key={code} value={code}>
+                            {code}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
 
                     <SettingRow
                       label="Organization ID"
@@ -3674,26 +3723,8 @@ export default function DashboardShell() {
                   <button
                     type="button"
                     className="secondary-button"
-                    disabled={
-                      settingsSaving
-                    }
-                    onClick={async () => {
-                      setSettingsSaving(
-                        true,
-                      );
-
-                      await new Promise(
-                        (resolve) =>
-                          setTimeout(
-                            resolve,
-                            250,
-                          ),
-                      );
-
-                      setSettingsSaving(
-                        false,
-                      );
-                    }}
+                    disabled={settingsSaving}
+                    onClick={saveSettings}
                   >
                     <CheckCircle2 size={16} />
                     {settingsSaving

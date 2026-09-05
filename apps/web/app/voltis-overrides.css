@@ -294,3 +294,34 @@ html[data-theme="light"] .json-editor {
     width: 100%;
   }
 }
+
+.setting-row-control {
+  align-items: center;
+}
+
+.settings-select {
+  min-width: 128px;
+  height: 38px;
+  padding: 0 34px 0 11px;
+  border: 1px solid var(--border-strong);
+  border-radius: 9px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.settings-select:hover {
+  border-color: rgba(92, 168, 255, 0.28);
+}
+
+@media (max-width: 720px) {
+  .setting-row-control {
+    align-items: stretch;
+  }
+
+  .settings-select {
+    width: 100%;
+  }
+}
