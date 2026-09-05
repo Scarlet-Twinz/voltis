@@ -47,7 +47,7 @@ export default function SignupPage() {
         lastName.trim(),
       );
 
-      router.replace("/login");
+      router.replace("/onboarding");
     } catch (err) {
       setError(
         err instanceof Error
@@ -64,21 +64,15 @@ export default function SignupPage() {
       <div className="auth-shell">
         <section className="auth-brand">
           <div className="brand-mark">V</div>
-
           <div>
             <div className="brand-name">VOLTIS</div>
             <div className="brand-subtitle">PAYMENT INFRASTRUCTURE</div>
           </div>
-
           <div className="auth-brand-copy">
             <span className="eyebrow">BUILD YOUR CONTROL CENTER</span>
             <h1>Financial infrastructure, built for control.</h1>
-            <p>
-              Create your VOLTIS workspace and operate payments, transactions,
-              ledger, risk and reconciliation from one platform.
-            </p>
+            <p>Create your VOLTIS workspace and operate payments, transactions, ledger, risk and reconciliation from one platform.</p>
           </div>
-
           <div className="auth-security">
             <span className="auth-status-dot" />
             <span>Infrastructure ready</span>
@@ -94,79 +88,15 @@ export default function SignupPage() {
 
           <form className="auth-form" onSubmit={handleSubmit}>
             {error && <div className="auth-error">{error}</div>}
-
             <div className="auth-row">
-              <label className="auth-field">
-                <span>First name</span>
-                <div className="auth-input-wrap">
-                  <UserRound size={17} />
-                  <input
-                    type="text"
-                    value={firstName}
-                    onChange={(event) => setFirstName(event.target.value)}
-                    placeholder="First name"
-                    autoComplete="given-name"
-                    disabled={loading}
-                  />
-                </div>
-              </label>
-
-              <label className="auth-field">
-                <span>Last name</span>
-                <div className="auth-input-wrap">
-                  <UserRound size={17} />
-                  <input
-                    type="text"
-                    value={lastName}
-                    onChange={(event) => setLastName(event.target.value)}
-                    placeholder="Last name"
-                    autoComplete="family-name"
-                    disabled={loading}
-                  />
-                </div>
-              </label>
+              <label className="auth-field"><span>First name</span><div className="auth-input-wrap"><UserRound size={17} /><input type="text" value={firstName} onChange={(event) => setFirstName(event.target.value)} placeholder="First name" autoComplete="given-name" disabled={loading} /></div></label>
+              <label className="auth-field"><span>Last name</span><div className="auth-input-wrap"><UserRound size={17} /><input type="text" value={lastName} onChange={(event) => setLastName(event.target.value)} placeholder="Last name" autoComplete="family-name" disabled={loading} /></div></label>
             </div>
-
-            <label className="auth-field">
-              <span>Email address</span>
-              <div className="auth-input-wrap">
-                <Mail size={17} />
-                <input
-                  type="email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  placeholder="you@company.com"
-                  autoComplete="email"
-                  disabled={loading}
-                />
-              </div>
-            </label>
-
-            <label className="auth-field">
-              <span>Password</span>
-              <div className="auth-input-wrap">
-                <LockKeyhole size={17} />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(event) => setPassword(event.target.value)}
-                  placeholder="At least 8 characters"
-                  autoComplete="new-password"
-                  disabled={loading}
-                />
-              </div>
-            </label>
-
-            <button className="auth-submit" type="submit" disabled={loading}>
-              {loading ? "Creating account..." : "Create account"}
-              {!loading && <ArrowRight size={17} />}
-            </button>
+            <label className="auth-field"><span>Email address</span><div className="auth-input-wrap"><Mail size={17} /><input type="email" value={email} onChange={(event) => setEmail(event.target.value)} placeholder="you@company.com" autoComplete="email" disabled={loading} /></div></label>
+            <label className="auth-field"><span>Password</span><div className="auth-input-wrap"><LockKeyhole size={17} /><input type="password" value={password} onChange={(event) => setPassword(event.target.value)} placeholder="At least 8 characters" autoComplete="new-password" disabled={loading} /></div></label>
+            <button className="auth-submit" type="submit" disabled={loading}>{loading ? "Creating account..." : "Create account"}{!loading && <ArrowRight size={17} />}</button>
           </form>
-
-          <div className="auth-footer">
-            <span>Already have an account?</span>
-            <Link href="/login">Sign in</Link>
-          </div>
+          <div className="auth-footer"><span>Already have an account?</span><Link href="/login">Sign in</Link></div>
         </section>
       </div>
     </main>
