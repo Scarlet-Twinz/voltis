@@ -24,26 +24,24 @@ interface AuthenticatedRequest
 @UseGuards(JwtAuthGuard)
 export class RiskController {
   constructor(
-    private readonly riskService:
-      RiskService,
+    private readonly riskService: RiskService,
   ) {}
 
   @Get('payments/:paymentId')
   findForPayment(
-    @Param('paymentId')
-    paymentId: string,
+    @Req() request: AuthenticatedRequest,
+    @Param('paymentId') paymentId: string,
   ) {
     return this.riskService.findForPayment(
+      request.user.sub,
       paymentId,
     );
   }
 
   @Get()
   findForOrganization(
-    @Req()
-    request: AuthenticatedRequest,
-    @Query('organizationId')
-    organizationId: string,
+    @Req() request: AuthenticatedRequest,
+    @Query('organizationId') organizationId: string,
   ) {
     return this.riskService.findForOrganization(
       request.user.sub,
