@@ -1,4 +1,4 @@
-﻿import {
+import {
   ConflictException,
   Injectable,
   NotFoundException,
@@ -7,6 +7,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import { Account } from '../accounts/account.entity.js';
+import { Organization } from '../organizations/organization.entity.js';
 import { Transaction } from '../transactions/transaction.entity.js';
 import {
   LedgerEntry,
@@ -26,182 +27,141 @@ export class LedgerService {
     @InjectRepository(Transaction)
     private readonly transactionsRepository: Repository<Transaction>,
 
+    @InjectRepository(Organization)
+    private readonly organizationsRepository: Repository<Organization>,
+
     private readonly dataSource: DataSource,
   ) {}
 
-  async createEntry(
-    userId: string,
-    dto: CreateLedgerEntryDto,
-  ) {
-    return this.dataSource.transaction(
-      async (manager) => {
-        const transaction =
-          await manager.getRepository(Transaction).findOne({
-            where: {
-              id: dto.transactionId,
-            },
-          });
+  async createEntry(userId: string, dto: CreateLedgerEntryDto) {
+    return this.dataSource.transaction(async (manager) => {
+      const transactionRepository = manager.getRepository(Transaction);
+      const accountRepository = manager.getRepository(Account);
+      const ledgerRepository = manager.getRepository(LedgerEntry);
+      const organizationRepository = manager.getRepository(Organization);
 
-        if (!transaction) {
-          throw new NotFoundException(
-            'Transaction not found',
-          );
-        }
+      const transaction = await transactionRepository.findOne({
+        where: { id: dto.transactionId },
+      });
 
-        const account =
-          await manager.getRepository(Account).findOne({
-            where: {
-              id: dto.accountId,
-              isActive: true,
-            },
-            relations: {
-              organization: true,
-            },
-          });
+      if (!transaction) {
+        throw new NotFoundException('Transaction not found');
+      }
 
-        if (!account) {
-          throw new NotFoundException(
-            'Account not found',
-          );
-        }
+      const organization = await organizationRepository.findOne({
+        where: {
+          id: transaction.organizationId,
+          ownerId: userId,
+          isActive: true,
+        },
+      });
 
-        if (
-          account.organization.ownerId !== userId ||
-          !account.organization.isActive
-        ) {
-          throw new NotFoundException(
-            'Account not found',
-          );
-        }
+      if (!organization) {
+        throw new NotFoundException('Transaction not found');
+      }
 
-        if (
-          transaction.organizationId !==
-          account.organizationId
-        ) {
-          throw new ConflictException(
-            'Transaction and account must belong to the same organization',
-          );
-        }
+      const account = await accountRepository.findOne({
+        where: { id: dto.accountId, isActive: true },
+        relations: { organization: true },
+      });
 
-        if (transaction.currency !== dto.currency) {
-          throw new ConflictException(
-            'Ledger entry currency must match the transaction currency',
-          );
-        }
+      if (!account) {
+        throw new NotFoundException('Account not found');
+      }
 
-        if (account.currency !== dto.currency) {
-          throw new ConflictException(
-            'Ledger entry currency must match the account currency',
-          );
-        }
+      if (
+        account.organization.ownerId !== userId ||
+        !account.organization.isActive
+      ) {
+        throw new NotFoundException('Account not found');
+      }
 
-        const amount = BigInt(dto.amount);
-
-        if (amount <= 0n) {
-          throw new ConflictException(
-            'Ledger entry amount must be greater than zero',
-          );
-        }
-
-        const ledgerEntry =
-          manager.getRepository(LedgerEntry).create({
-            transactionId: transaction.id,
-            transaction,
-            accountId: account.id,
-            account,
-            type: dto.type,
-            amount: amount.toString(),
-            currency: dto.currency,
-            description: dto.description.trim(),
-          });
-
-        const savedEntry =
-          await manager
-            .getRepository(LedgerEntry)
-            .save(ledgerEntry);
-
-        const currentBalance = BigInt(
-          account.balance,
+      if (transaction.organizationId !== account.organizationId) {
+        throw new ConflictException(
+          'Transaction and account must belong to the same organization',
         );
+      }
 
-        const newBalance =
-          dto.type === LedgerEntryType.DEBIT
-            ? currentBalance + amount
-            : currentBalance - amount;
+      if (transaction.currency !== dto.currency) {
+        throw new ConflictException(
+          'Ledger entry currency must match the transaction currency',
+        );
+      }
 
-        if (newBalance < 0n) {
-          throw new ConflictException(
-            'Account balance cannot become negative',
-          );
-        }
+      if (account.currency !== dto.currency) {
+        throw new ConflictException(
+          'Ledger entry currency must match the account currency',
+        );
+      }
 
-        account.balance = newBalance.toString();
+      const amount = BigInt(dto.amount);
+      if (amount <= 0n) {
+        throw new ConflictException('Ledger entry amount must be greater than zero');
+      }
 
-        await manager
-          .getRepository(Account)
-          .save(account);
+      const ledgerEntry = ledgerRepository.create({
+        transactionId: transaction.id,
+        transaction,
+        accountId: account.id,
+        account,
+        type: dto.type,
+        amount: amount.toString(),
+        currency: dto.currency,
+        description: dto.description.trim(),
+      });
 
-        return {
-          id: savedEntry.id,
-          transactionId: savedEntry.transactionId,
-          accountId: savedEntry.accountId,
-          type: savedEntry.type,
-          amount: savedEntry.amount,
-          currency: savedEntry.currency,
-          description: savedEntry.description,
-          createdAt: savedEntry.createdAt,
-          balanceAfter: account.balance,
-        };
-      },
-    );
+      const savedEntry = await ledgerRepository.save(ledgerEntry);
+      const currentBalance = BigInt(account.balance);
+      const newBalance =
+        dto.type === LedgerEntryType.DEBIT
+          ? currentBalance + amount
+          : currentBalance - amount;
+
+      if (newBalance < 0n) {
+        throw new ConflictException('Account balance cannot become negative');
+      }
+
+      account.balance = newBalance.toString();
+      await accountRepository.save(account);
+
+      return {
+        id: savedEntry.id,
+        transactionId: savedEntry.transactionId,
+        accountId: savedEntry.accountId,
+        type: savedEntry.type,
+        amount: savedEntry.amount,
+        currency: savedEntry.currency,
+        description: savedEntry.description,
+        createdAt: savedEntry.createdAt,
+        balanceAfter: account.balance,
+      };
+    });
   }
 
-  async findByTransaction(
-    userId: string,
-    transactionId: string,
-  ) {
-    const transaction =
-      await this.transactionsRepository.findOne({
-        where: {
-          id: transactionId,
-        },
-      });
+  async findByTransaction(userId: string, transactionId: string) {
+    const transaction = await this.transactionsRepository.findOne({
+      where: { id: transactionId },
+    });
 
-    if (
-      !transaction ||
-      transaction.organizationId === undefined
-    ) {
-      throw new NotFoundException(
-        'Transaction not found',
-      );
+    if (!transaction) {
+      throw new NotFoundException('Transaction not found');
     }
 
-    const account =
-      await this.accountsRepository.findOne({
-        where: {
-          organizationId: transaction.organizationId,
-        },
-        relations: {
-          organization: true,
-        },
-      });
+    const organization = await this.organizationsRepository.findOne({
+      where: {
+        id: transaction.organizationId,
+        ownerId: userId,
+        isActive: true,
+      },
+    });
 
-    if (
-      !account ||
-      account.organization.ownerId !== userId
-    ) {
-      throw new NotFoundException(
-        'Transaction not found',
-      );
+    if (!organization) {
+      throw new NotFoundException('Transaction not found');
     }
 
     return this.ledgerRepository.find({
-      where: {
-        transactionId,
-      },
-      order: {
-        createdAt: 'ASC',
-      },
+      where: { transactionId },
+      order: { createdAt: 'ASC' },
     });
   }
 }
