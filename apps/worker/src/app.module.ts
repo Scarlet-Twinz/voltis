@@ -5,6 +5,9 @@ import {
   ConfigService,
 } from '@nestjs/config';
 
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+
 import {
   PAYMENT_DEAD_LETTER_QUEUE,
   PaymentProcessor,
@@ -50,13 +53,17 @@ import {
         name: 'payments',
       },
       {
-        name:
-          PAYMENT_DEAD_LETTER_QUEUE,
+        name: PAYMENT_DEAD_LETTER_QUEUE,
       },
     ),
   ],
 
+  controllers: [
+    AppController,
+  ],
+
   providers: [
+    AppService,
     PaymentProcessor,
   ],
 })

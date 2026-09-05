@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+﻿import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import {
   ConfigModule,
@@ -6,6 +6,7 @@ import {
 } from '@nestjs/config';
 
 import { AccountsModule } from './accounts/accounts.module.js';
+import { AnalyticsModule } from './analytics/analytics.module.js';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AuthModule } from './auth/auth.module.js';
@@ -34,18 +35,14 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
         configService: ConfigService,
       ) => ({
         connection: {
-          host:
-            configService.get<string>(
-              'REDIS_HOST',
-              'localhost',
-            ),
-
-          port:
-            configService.get<number>(
-              'REDIS_PORT',
-              6382,
-            ),
-
+          host: configService.get<string>(
+            'REDIS_HOST',
+            'localhost',
+          ),
+          port: configService.get<number>(
+            'REDIS_PORT',
+            6382,
+          ),
           password:
             configService.get<string>(
               'REDIS_PASSWORD',
@@ -60,6 +57,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     UsersModule,
     OrganizationsModule,
     AccountsModule,
+    AnalyticsModule,
     TransactionsModule,
     LedgerModule,
     PaymentsModule,
