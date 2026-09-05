@@ -9,6 +9,7 @@ import { Repository } from 'typeorm';
 import { Organization } from './organization.entity.js';
 import { User } from '../users/user.entity.js';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
+import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
 
 @Injectable()
 export class OrganizationsService {
@@ -98,5 +99,49 @@ export class OrganizationsService {
     }
 
     return organization;
+  }
+
+  async updateForUser(
+    userId: string,
+    organizationId: string,
+    dto: UpdateOrganizationDto,
+  ) {
+    const organization = await this.findOneForUser(
+      userId,
+      organizationId,
+    );
+
+    if (dto.slug) {
+      const slug = dto.slug.trim().toLowerCase();
+
+      if (slug !== organization.slug) {
+        const existing =
+          await this.organizationsRepository.findOne({
+            where: { slug },
+          });
+
+        if (existing && existing.id !== organization.id) {
+          throw new ConflictException(
+            'An organization with this slug already exists',
+          );
+        }
+
+        organization.slug = slug;
+      }
+    }
+
+    if (dto.name !== undefined) {
+      organization.name = dto.name.trim();
+    }
+
+    if (dto.defaultCurrency !== undefined) {
+      organization.defaultCurrency = dto.defaultCurrency
+        .trim()
+        .toUpperCase();
+    }
+
+    return this.organizationsRepository.save(
+      organization,
+    );
   }
 }
