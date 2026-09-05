@@ -6,6 +6,8 @@ import { AppModule } from './app.module.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  const isProduction =
+    process.env.NODE_ENV === 'production';
 
   const configuredOrigins =
     process.env.CORS_ORIGINS
@@ -17,7 +19,7 @@ async function bootstrap() {
     origin:
       configuredOrigins.length > 0
         ? configuredOrigins
-        : process.env.NODE_ENV === 'production'
+        : isProduction
           ? false
           : true,
     credentials: true,
@@ -47,10 +49,14 @@ async function bootstrap() {
         'Permissions-Policy',
         'camera=(), microphone=(), geolocation=()',
       );
-      response.setHeader(
-        'Strict-Transport-Security',
-        'max-age=31536000; includeSubDomains',
-      );
+
+      if (isProduction) {
+        response.setHeader(
+          'Strict-Transport-Security',
+          'max-age=31536000; includeSubDomains',
+        );
+      }
+
       next();
     },
   );
