@@ -44,6 +44,7 @@ services:
       DB_USER: ${DB_USER:-voltis}
       DB_PASSWORD: ${DB_PASSWORD:-voltis_dev_password}
       DB_NAME: ${DB_NAME:-voltis}
+      DB_MIGRATIONS_RUN: "true"
       REDIS_HOST: redis
       REDIS_PORT: 6379
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
@@ -52,6 +53,11 @@ services:
       WORKER_SECRET: ${WORKER_SECRET:?WORKER_SECRET must be set}
     ports:
       - "4000:4000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:4000/health >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       postgres:
         condition: service_healthy
@@ -74,7 +80,7 @@ services:
       REDIS_PASSWORD: ${REDIS_PASSWORD:-}
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
       redis:
         condition: service_healthy
 
@@ -89,9 +95,14 @@ services:
       NODE_ENV: production
     ports:
       - "3000:3000"
+    healthcheck:
+      test: ["CMD-SHELL", "wget -qO- http://127.0.0.1:3000 >/dev/null || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
     depends_on:
       api:
-        condition: service_started
+        condition: service_healthy
 
 volumes:
   voltis-postgres:
