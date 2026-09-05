@@ -1,5 +1,5 @@
-﻿const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4001";
+const API_BASE_URL =
+  process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:4000";
 
 type ApiErrorBody = {
   message?: string | string[];
@@ -196,9 +196,7 @@ export const api = {
   },
 
   organizations: {
-    list: () =>
-      request<Organization[]>("/organizations"),
-
+    list: () => request<Organization[]>("/organizations"),
     create: (data: {
       name: string;
       slug: string;
@@ -208,60 +206,42 @@ export const api = {
         method: "POST",
         body: JSON.stringify(data),
       }),
-
     get: (organizationId: string) =>
       request<Organization>(
         `/organizations/${encodeURIComponent(organizationId)}`,
       ),
-
     update: (
       organizationId: string,
       data: Partial<Pick<Organization, "name" | "slug" | "defaultCurrency">>,
     ) =>
       request<Organization>(
         `/organizations/${encodeURIComponent(organizationId)}`,
-        {
-          method: "PATCH",
-          body: JSON.stringify(data),
-        },
+        { method: "PATCH", body: JSON.stringify(data) },
       ),
   },
 
   accounts: {
     list: (organizationId: string) =>
-      request<Account[]>(
-        `/accounts?${orgQuery(organizationId)}`,
-      ),
-
+      request<Account[]>(`/accounts?${orgQuery(organizationId)}`),
     create: (data: Record<string, unknown>) =>
       request<Account>("/accounts", {
         method: "POST",
         body: JSON.stringify(data),
       }),
-
     get: (accountId: string) =>
-      request<Account>(
-        `/accounts/${encodeURIComponent(accountId)}`,
-      ),
+      request<Account>(`/accounts/${encodeURIComponent(accountId)}`),
   },
 
   transactions: {
     list: (organizationId: string) =>
-      request<Transaction[]>(
-        `/transactions?${orgQuery(organizationId)}`,
-      ),
-
+      request<Transaction[]>(`/transactions?${orgQuery(organizationId)}`),
     create: (data: Record<string, unknown>) =>
       request<Transaction>("/transactions", {
         method: "POST",
         body: JSON.stringify(data),
       }),
-
     get: (transactionId: string) =>
-      request<Transaction>(
-        `/transactions/${encodeURIComponent(transactionId)}`,
-      ),
-
+      request<Transaction>(`/transactions/${encodeURIComponent(transactionId)}`),
     analytics: (organizationId: string) =>
       request<TransactionsResponse>(
         `/analytics/transactions?${orgQuery(organizationId)}`,
@@ -270,21 +250,14 @@ export const api = {
 
   payments: {
     list: (organizationId: string) =>
-      request<unknown[]>(
-        `/payments?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown[]>(`/payments?${orgQuery(organizationId)}`),
     get: (paymentId: string) =>
-      request<unknown>(
-        `/payments/${encodeURIComponent(paymentId)}`,
-      ),
-
+      request<unknown>(`/payments/${encodeURIComponent(paymentId)}`),
     create: (data: Record<string, unknown>) =>
       request<unknown>("/payments", {
         method: "POST",
         body: JSON.stringify(data),
       }),
-
     processInternal: (data: Record<string, unknown>) =>
       request<unknown>("/payments/process-internal", {
         method: "POST",
@@ -297,7 +270,6 @@ export const api = {
       request<unknown[]>(
         `/ledger/transactions/${encodeURIComponent(transactionId)}`,
       ),
-
     createEntry: (data: Record<string, unknown>) =>
       request<unknown>("/ledger/entries", {
         method: "POST",
@@ -307,92 +279,53 @@ export const api = {
 
   risk: {
     list: (organizationId: string) =>
-      request<unknown[]>(
-        `/risk?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown[]>(`/risk?${orgQuery(organizationId)}`),
     payment: (paymentId: string) =>
-      request<unknown>(
-        `/risk/payments/${encodeURIComponent(paymentId)}`,
-      ),
+      request<unknown>(`/risk/payments/${encodeURIComponent(paymentId)}`),
   },
 
   reconciliation: {
     list: (organizationId: string) =>
-      request<unknown[]>(
-        `/reconciliation?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown[]>(`/reconciliation?${orgQuery(organizationId)}`),
     get: (id: string) =>
-      request<unknown>(
-        `/reconciliation/${encodeURIComponent(id)}`,
-      ),
-
+      request<unknown>(`/reconciliation/${encodeURIComponent(id)}`),
     run: (organizationId: string) =>
-      request<unknown>(
-        `/reconciliation?${orgQuery(organizationId)}`,
-        {
-          method: "POST",
-        },
-      ),
+      request<unknown>(`/reconciliation?${orgQuery(organizationId)}`, {
+        method: "POST",
+      }),
   },
 
   webhooks: {
     endpoints: (organizationId: string) =>
-      request<unknown[]>(
-        `/webhooks/endpoints?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown[]>(`/webhooks/endpoints?${orgQuery(organizationId)}`),
     createEndpoint: (
       organizationId: string,
       data: Record<string, unknown>,
     ) =>
-      request<unknown>(
-        `/webhooks/endpoints?${orgQuery(organizationId)}`,
-        {
-          method: "POST",
-          body: JSON.stringify(data),
-        },
-      ),
-
+      request<unknown>(`/webhooks/endpoints?${orgQuery(organizationId)}`, {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
     deleteEndpoint: (id: string) =>
-      request<void>(
-        `/webhooks/endpoints/${encodeURIComponent(id)}`,
-        {
-          method: "DELETE",
-        },
-      ),
-
+      request<void>(`/webhooks/endpoints/${encodeURIComponent(id)}`, {
+        method: "DELETE",
+      }),
     deliveries: (organizationId: string) =>
-      request<unknown[]>(
-        `/webhooks/deliveries?${orgQuery(organizationId)}`,
-      ),
+      request<unknown[]>(`/webhooks/deliveries?${orgQuery(organizationId)}`),
   },
 
   analytics: {
     overview: (organizationId: string) =>
-      request<OverviewData>(
-        `/analytics/overview?${orgQuery(organizationId)}`,
-      ),
-
+      request<OverviewData>(`/analytics/overview?${orgQuery(organizationId)}`),
     payments: (organizationId: string) =>
-      request<unknown>(
-        `/analytics/payments?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown>(`/analytics/payments?${orgQuery(organizationId)}`),
     transactions: (organizationId: string) =>
       request<TransactionsResponse>(
         `/analytics/transactions?${orgQuery(organizationId)}`,
       ),
-
     risk: (organizationId: string) =>
-      request<unknown>(
-        `/analytics/risk?${orgQuery(organizationId)}`,
-      ),
-
+      request<unknown>(`/analytics/risk?${orgQuery(organizationId)}`),
     accounts: (organizationId: string) =>
-      request<unknown>(
-        `/analytics/accounts?${orgQuery(organizationId)}`,
-      ),
+      request<unknown>(`/analytics/accounts?${orgQuery(organizationId)}`),
   },
 };
