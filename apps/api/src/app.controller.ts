@@ -1,4 +1,5 @@
 import { Controller, Get } from '@nestjs/common';
+
 import { AppService } from './app.service.js';
 
 @Controller()
@@ -8,5 +9,16 @@ export class AppController {
   @Get()
   getHello(): string {
     return this.appService.getHello();
+  }
+
+  @Get('health')
+  getHealth() {
+    return {
+      status: 'ok',
+      service: 'voltis-api',
+      environment:
+        process.env.NODE_ENV ?? 'development',
+      timestamp: new Date().toISOString(),
+    };
   }
 }
