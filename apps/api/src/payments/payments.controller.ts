@@ -33,8 +33,7 @@ interface ProcessPaymentBody {
 @Controller('payments')
 export class PaymentsController {
   constructor(
-    private readonly paymentsService:
-      PaymentsService,
+    private readonly paymentsService: PaymentsService,
   ) {}
 
   @Post()
@@ -43,31 +42,23 @@ export class PaymentsController {
     @Req() request: AuthenticatedRequest,
     @Body() dto: CreatePaymentDto,
   ) {
-    return this.paymentsService.create(
-      request.user.sub,
-      dto,
-    );
+    return this.paymentsService.create(request.user.sub, dto);
   }
 
   @Post('process-internal')
   processInternal(
-    @Headers('x-voltis-worker-secret')
-    workerSecret: string | undefined,
-
-    @Body()
-    body: ProcessPaymentBody,
+    @Headers('x-voltis-worker-secret') workerSecret: string | undefined,
+    @Body() body: ProcessPaymentBody,
   ) {
+    const configuredSecret = process.env.WORKER_SECRET;
     const expectedSecret =
-      process.env.WORKER_SECRET ??
-      'voltis-worker-development-secret';
+      configuredSecret ||
+      (process.env.NODE_ENV === 'production'
+        ? ''
+        : 'voltis-worker-development-secret');
 
-    if (
-      !workerSecret ||
-      workerSecret !== expectedSecret
-    ) {
-      throw new UnauthorizedException(
-        'Invalid worker credentials',
-      );
+    if (!expectedSecret || !workerSecret || workerSecret !== expectedSecret) {
+      throw new UnauthorizedException('Invalid worker credentials');
     }
 
     return this.paymentsService.processQueuedPayment(
@@ -82,8 +73,7 @@ export class PaymentsController {
   @UseGuards(JwtAuthGuard)
   findAll(
     @Req() request: AuthenticatedRequest,
-    @Query('organizationId')
-    organizationId: string,
+    @Query('organizationId') organizationId: string,
   ) {
     return this.paymentsService.findAllForUser(
       request.user.sub,
