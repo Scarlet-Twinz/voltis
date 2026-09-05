@@ -6,13 +6,10 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
-import { Account } from '../accounts/account.entity.js';
+import { Account, AccountType } from '../accounts/account.entity.js';
 import { Organization } from '../organizations/organization.entity.js';
 import { Transaction } from '../transactions/transaction.entity.js';
-import {
-  LedgerEntry,
-  LedgerEntryType,
-} from './ledger-entry.entity.js';
+import { LedgerEntry, LedgerEntryType } from './ledger-entry.entity.js';
 import { CreateLedgerEntryDto } from './dto/create-ledger-entry.dto.js';
 
 @Injectable()
@@ -60,10 +57,44 @@ export class LedgerService {
         throw new NotFoundException('Transaction not found');
       }
 
-      const account = await accountRepository.findOne({
-        where: { id: dto.accountId, isActive: true },
-        relations: { organization: true },
+      const amount = BigInt(dto.amount);
+      if (amount <= 0n) {
+        throw new ConflictException('Ledger entry amount must be greater than zero');
+      }
+
+      if (amount !== BigInt(transaction.amount)) {
+        throw new ConflictException('Ledger entry amount must match the transaction amount');
+      }
+
+      const existingEntries = await ledgerRepository.find({
+        where: { transactionId: transaction.id },
+        order: { createdAt: 'ASC' },
       });
+
+      if (existingEntries.length >= 2) {
+        throw new ConflictException('Transaction already has a complete double-entry ledger');
+      }
+
+      const existingEntry = existingEntries[0];
+      if (existingEntry && existingEntry.type === dto.type) {
+        throw new ConflictException('A transaction must contain one debit and one credit entry');
+      }
+
+      if (
+        existingEntry &&
+        (existingEntry.amount !== amount.toString() ||
+          existingEntry.currency !== dto.currency)
+      ) {
+        throw new ConflictException('Ledger entries must match the transaction amount and currency');
+      }
+
+      const account = await accountRepository
+        .createQueryBuilder('account')
+        .innerJoinAndSelect('account.organization', 'organization')
+        .where('account.id = :accountId', { accountId: dto.accountId })
+        .andWhere('account.isActive = :isActive', { isActive: true })
+        .setLock('pessimistic_write')
+        .getOne();
 
       if (!account) {
         throw new NotFoundException('Account not found');
@@ -94,11 +125,6 @@ export class LedgerService {
         );
       }
 
-      const amount = BigInt(dto.amount);
-      if (amount <= 0n) {
-        throw new ConflictException('Ledger entry amount must be greater than zero');
-      }
-
       const ledgerEntry = ledgerRepository.create({
         transactionId: transaction.id,
         transaction,
@@ -110,16 +136,19 @@ export class LedgerService {
         description: dto.description.trim(),
       });
 
-      const savedEntry = await ledgerRepository.save(ledgerEntry);
       const currentBalance = BigInt(account.balance);
-      const newBalance =
-        dto.type === LedgerEntryType.DEBIT
-          ? currentBalance + amount
-          : currentBalance - amount;
+      const newBalance = this.calculateBalance(
+        account.type,
+        dto.type,
+        currentBalance,
+        amount,
+      );
 
       if (newBalance < 0n) {
         throw new ConflictException('Account balance cannot become negative');
       }
+
+      const savedEntry = await ledgerRepository.save(ledgerEntry);
 
       account.balance = newBalance.toString();
       await accountRepository.save(account);
@@ -163,5 +192,24 @@ export class LedgerService {
       where: { transactionId },
       order: { createdAt: 'ASC' },
     });
+  }
+
+  private calculateBalance(
+    accountType: AccountType,
+    entryType: LedgerEntryType,
+    currentBalance: bigint,
+    amount: bigint,
+  ): bigint {
+    const increasesOnDebit =
+      accountType === AccountType.ASSET ||
+      accountType === AccountType.EXPENSE;
+
+    const increases = increasesOnDebit
+      ? entryType === LedgerEntryType.DEBIT
+      : entryType === LedgerEntryType.CREDIT;
+
+    return increases
+      ? currentBalance + amount
+      : currentBalance - amount;
   }
 }
