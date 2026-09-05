@@ -16,6 +16,14 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         database: configService.get<string>('DB_NAME', 'voltis'),
         autoLoadEntities: true,
         synchronize: false,
+        migrations: [
+          'apps/api/dist/database/migrations/*.js',
+          'apps/api/src/database/migrations/*.ts',
+          'dist/database/migrations/*.js',
+          'src/database/migrations/*.ts',
+        ],
+        migrationsRun:
+          configService.get<string>('DB_MIGRATIONS_RUN', 'false') === 'true',
         logging: configService.get<string>('NODE_ENV') !== 'production',
       }),
     }),
