@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import DashboardShell from "../components/DashboardShell";
+import DashboardShell from "../components/DashboardShellV2";
 import { api } from "../lib/api";
 import { useAuth } from "../components/AuthProvider";
 
@@ -17,7 +17,6 @@ export default function HomePage() {
 
     async function ensureOrganization() {
       if (authLoading) return;
-
       if (!user) {
         router.replace("/login");
         return;
@@ -26,25 +25,18 @@ export default function HomePage() {
       try {
         const organizations = await api.organizations.list();
         if (cancelled) return;
-
         if (!Array.isArray(organizations) || organizations.length === 0) {
           router.replace("/onboarding");
           return;
         }
-
         setCheckingWorkspace(false);
       } catch {
-        if (!cancelled) {
-          router.replace("/onboarding");
-        }
+        if (!cancelled) router.replace("/onboarding");
       }
     }
 
     ensureOrganization();
-
-    return () => {
-      cancelled = true;
-    };
+    return () => { cancelled = true; };
   }, [authLoading, user, router]);
 
   if (authLoading || checkingWorkspace) {
