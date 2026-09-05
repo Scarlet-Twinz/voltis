@@ -3,6 +3,7 @@ import {
   Controller,
   Get,
   Param,
+  Patch,
   Post,
   Req,
   UseGuards,
@@ -11,6 +12,7 @@ import type { Request } from 'express';
 
 import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 import { CreateOrganizationDto } from './dto/create-organization.dto.js';
+import { UpdateOrganizationDto } from './dto/update-organization.dto.js';
 import { OrganizationsService } from './organizations.service.js';
 
 interface AuthenticatedRequest extends Request {
@@ -55,6 +57,19 @@ export class OrganizationsController {
     return this.organizationsService.findOneForUser(
       request.user.sub,
       organizationId,
+    );
+  }
+
+  @Patch(':id')
+  update(
+    @Req() request: AuthenticatedRequest,
+    @Param('id') organizationId: string,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    return this.organizationsService.updateForUser(
+      request.user.sub,
+      organizationId,
+      dto,
     );
   }
 }
