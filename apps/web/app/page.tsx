@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 
-import DashboardShell from "../components/DashboardShellV2";
+import DashboardShell from "../components/DashboardShellV3";
 import { api } from "../lib/api";
 import { useAuth } from "../components/AuthProvider";
 
