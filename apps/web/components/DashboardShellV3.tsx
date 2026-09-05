@@ -2,54 +2,50 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import {
-  Activity, BarChart3, Bell, BookOpen, CheckCircle2, ChevronRight, CreditCard,
-  FileCheck2, LayoutDashboard, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen,
-  RefreshCw, Settings, ShieldCheck, Sun, Wallet, Webhook, X, Plus, Search
-} from "lucide-react";
+import { Activity, ArrowDownLeft, ArrowUpRight, BarChart3, Bell, BookOpen, CheckCircle2, ChevronDown, ChevronRight, CircleDollarSign, CreditCard, FileCheck2, LayoutDashboard, LogOut, Menu, Moon, PanelLeftClose, PanelLeftOpen, Plus, RefreshCw, Search, Settings, ShieldCheck, Sun, Wallet, Webhook, X, Zap } from "lucide-react";
 import { api, type Account, type Organization, type OverviewData, type Transaction, type TransactionsResponse } from "../lib/api";
 import { useAuth } from "./AuthProvider";
 
 type Module = "Overview" | "Accounts" | "Transactions" | "Payments" | "Ledger" | "Risk" | "Reconciliation" | "Webhooks" | "Analytics" | "Settings";
 type Row = Record<string, unknown>;
 type PaymentMethod = "card" | "bank_transfer" | "wallet" | "cash";
+type NavItem = { label: Module; icon: typeof LayoutDashboard; group: string };
 
-const nav: Array<{ label: Module; icon: typeof LayoutDashboard; group: string }> = [
+const nav: NavItem[] = [
   { label: "Overview", icon: LayoutDashboard, group: "Workspace" },
   { label: "Accounts", icon: Wallet, group: "Workspace" },
   { label: "Transactions", icon: Activity, group: "Workspace" },
-  { label: "Payments", icon: CreditCard, group: "Financial operations" },
-  { label: "Ledger", icon: BookOpen, group: "Financial operations" },
-  { label: "Risk", icon: ShieldCheck, group: "Control" },
-  { label: "Reconciliation", icon: FileCheck2, group: "Control" },
-  { label: "Webhooks", icon: Webhook, group: "Infrastructure" },
-  { label: "Analytics", icon: BarChart3, group: "Infrastructure" },
+  { label: "Payments", icon: CreditCard, group: "Operations" },
+  { label: "Ledger", icon: BookOpen, group: "Operations" },
+  { label: "Risk", icon: ShieldCheck, group: "Controls" },
+  { label: "Reconciliation", icon: FileCheck2, group: "Controls" },
+  { label: "Webhooks", icon: Webhook, group: "Developer" },
+  { label: "Analytics", icon: BarChart3, group: "Developer" },
   { label: "Settings", icon: Settings, group: "System" },
 ];
 
 const money = (value: unknown, currency = "NGN") => {
-  const n = Number(value ?? 0);
-  if (!Number.isFinite(n)) return `${currency} 0.00`;
-  return new Intl.NumberFormat("en-NG", { style: "currency", currency, minimumFractionDigits: 2 }).format(n);
+  const amount = Number(value ?? 0);
+  if (!Number.isFinite(amount)) return `${currency} 0.00`;
+  return new Intl.NumberFormat("en-NG", { style: "currency", currency, minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount);
 };
-const num = (value: unknown) => new Intl.NumberFormat("en-NG").format(Number(value ?? 0));
+const number = (value: unknown) => new Intl.NumberFormat("en-NG").format(Number(value ?? 0));
 const text = (value: unknown, fallback = "—") => typeof value === "string" && value.trim() ? value : typeof value === "number" || typeof value === "boolean" ? String(value) : fallback;
-const rows = (value: unknown): Row[] => Array.isArray(value) ? value.filter((x): x is Row => !!x && typeof x === "object" && !Array.isArray(x)) : [];
-const date = (value: unknown) => typeof value === "string" && !Number.isNaN(Date.parse(value)) ? new Intl.DateTimeFormat("en-NG", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value)) : "—";
-const statusTone = (value: unknown) => {
-  const s = text(value).toLowerCase();
-  if (["completed", "success", "successful", "active", "allowed", "healthy", "delivered"].includes(s)) return "good";
-  if (["failed", "blocked", "error", "cancelled", "canceled", "inactive"].includes(s)) return "bad";
-  if (["pending", "processing", "review", "retrying"].includes(s)) return "warn";
-  return "neutral";
-};
-const initials = (value: string) => value.trim().split(/\s+/).slice(0, 2).map(x => x[0]?.toUpperCase()).join("") || "V";
+const rows = (value: unknown): Row[] => Array.isArray(value) ? value.filter((item): item is Row => !!item && typeof item === "object" && !Array.isArray(item)) : [];
+const formatDate = (value: unknown) => typeof value === "string" && !Number.isNaN(Date.parse(value)) ? new Intl.DateTimeFormat("en-NG", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(value)) : "—";
+const statusTone = (value: unknown) => { const status = text(value).toLowerCase(); if (["completed", "success", "successful", "active", "allowed", "healthy", "delivered"].includes(status)) return "good"; if (["failed", "blocked", "error", "cancelled", "canceled", "inactive", "rejected"].includes(status)) return "bad"; if (["pending", "processing", "review", "retrying"].includes(status)) return "warn"; return "neutral"; };
+const initials = (value: string) => value.trim().split(/\s+/).slice(0, 2).map((part) => part[0]?.toUpperCase()).join("") || "V";
+
+function Status({ value }: { value: unknown }) { return <span className={`status ${statusTone(value)}`}>{text(value)}</span>; }
+function SectionTitle({ eyebrow, title, action }: { eyebrow: string; title: string; action?: React.ReactNode }) { return <div className="section-title"><div><span>{eyebrow}</span><h2>{title}</h2></div>{action}</div>; }
+function MetricCard({ label, value, detail, icon, tone = "blue" }: { label: string; value: string; detail: string; icon: React.ReactNode; tone?: "blue" | "green" | "amber" | "violet" }) { return <article className="metric-card"><div className={`metric-icon ${tone}`}>{icon}</div><div className="metric-copy"><span>{label}</span><strong>{value}</strong><small>{detail}</small></div></article>; }
+function EmptyState({ title, description }: { title: string; description: string }) { return <div className="empty-state"><div className="empty-icon"><Zap size={18} /></div><strong>{title}</strong><span>{description}</span></div>; }
+function JsonPreview({ value }: { value: unknown }) { if (value == null) return <EmptyState title="No data yet" description="This module has not returned analytics yet." />; return <pre className="json-preview">{JSON.stringify(value, null, 2)}</pre>; }
 
 export default function DashboardShellV3() {
   const { user, logout } = useAuth();
   const router = useRouter();
   const [organization, setOrganization] = useState<Organization | null>(null);
-  const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [active, setActive] = useState<Module>("Overview");
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -72,7 +68,7 @@ export default function DashboardShellV3() {
   const [analyticsAccounts, setAnalyticsAccounts] = useState<unknown>(null);
   const [search, setSearch] = useState("");
   const [modal, setModal] = useState<"payment" | "account" | "webhook" | null>(null);
-  const [selected, setSelected] = useState<Transaction | Row | null>(null);
+  const [selected, setSelected] = useState<Transaction | null>(null);
   const [settingsCurrency, setSettingsCurrency] = useState("NGN");
   const [payment, setPayment] = useState({ debitAccountId: "", creditAccountId: "", amount: "", currency: "NGN", method: "card" as PaymentMethod, description: "", idempotencyKey: "" });
   const [accountForm, setAccountForm] = useState({ code: "", name: "", type: "asset", currency: "NGN" });
@@ -81,195 +77,85 @@ export default function DashboardShellV3() {
   const currency = organization?.defaultCurrency ?? overview?.organization?.defaultCurrency ?? "NGN";
   const displayName = user?.firstName || user?.email?.split("@")[0] || "there";
 
-  useEffect(() => {
-    const saved = localStorage.getItem("voltis_theme");
-    if (saved === "light" || saved === "dark") setTheme(saved);
-  }, []);
-  useEffect(() => {
-    document.documentElement.dataset.theme = theme;
-    localStorage.setItem("voltis_theme", theme);
-  }, [theme]);
-  useEffect(() => {
-    if (organization?.defaultCurrency) {
-      setSettingsCurrency(organization.defaultCurrency);
-      setPayment(p => ({ ...p, currency: organization.defaultCurrency }));
-      setAccountForm(a => ({ ...a, currency: organization.defaultCurrency }));
-    }
-  }, [organization?.defaultCurrency]);
+  useEffect(() => { const saved = window.localStorage.getItem("voltis_theme"); if (saved === "light" || saved === "dark") setTheme(saved); }, []);
+  useEffect(() => { document.documentElement.dataset.theme = theme; window.localStorage.setItem("voltis_theme", theme); }, [theme]);
+  useEffect(() => { if (!organization?.defaultCurrency) return; setSettingsCurrency(organization.defaultCurrency); setPayment((current) => ({ ...current, currency: organization.defaultCurrency })); setAccountForm((current) => ({ ...current, currency: organization.defaultCurrency })); }, [organization?.defaultCurrency]);
 
-  async function loadWorkspace() {
-    const orgs = await api.organizations.list();
-    const org = orgs?.[0] ?? null;
-    setOrganizations(Array.isArray(orgs) ? orgs : []);
-    setOrganization(org);
-    if (org) setSettingsCurrency(org.defaultCurrency);
-    return org?.id ?? "";
-  }
+  async function loadWorkspace() { const organizations = await api.organizations.list(); const org = organizations?.[0] ?? null; setOrganization(org); if (org) setSettingsCurrency(org.defaultCurrency); return org?.id ?? ""; }
   async function loadModule(module: Module, id = orgId) {
     if (!id) return;
     if (module === "Overview") setOverview(await api.analytics.overview(id));
     if (module === "Accounts") setAccounts(await api.accounts.list(id));
-    if (module === "Transactions" || module === "Ledger") {
-      const [t, a] = await Promise.all([api.transactions.list(id), api.transactions.analytics(id)]);
-      setTransactions(t); setTxAnalytics(a);
-    }
-    if (module === "Payments") {
-      const [p, a] = await Promise.all([api.payments.list(id), api.accounts.list(id)]);
-      setPayments(rows(p)); setAccounts(a);
-    }
+    if (module === "Transactions" || module === "Ledger") { const [items, analytics] = await Promise.all([api.transactions.list(id), api.transactions.analytics(id)]); setTransactions(items); setTxAnalytics(analytics); }
+    if (module === "Payments") { const [items, accountList] = await Promise.all([api.payments.list(id), api.accounts.list(id)]); setPayments(rows(items)); setAccounts(accountList); }
     if (module === "Risk") setRisk(rows(await api.risk.list(id)));
     if (module === "Reconciliation") setReconciliation(rows(await api.reconciliation.list(id)));
-    if (module === "Webhooks") {
-      const [e, d] = await Promise.all([api.webhooks.endpoints(id), api.webhooks.deliveries(id)]);
-      setEndpoints(rows(e)); setDeliveries(rows(d));
-    }
-    if (module === "Analytics") {
-      const [o, p, r, a, t] = await Promise.all([api.analytics.overview(id), api.analytics.payments(id), api.analytics.risk(id), api.analytics.accounts(id), api.transactions.analytics(id)]);
-      setOverview(o); setAnalyticsPayments(p); setAnalyticsRisk(r); setAnalyticsAccounts(a); setTxAnalytics(t);
-    }
+    if (module === "Webhooks") { const [items, deliveryList] = await Promise.all([api.webhooks.endpoints(id), api.webhooks.deliveries(id)]); setEndpoints(rows(items)); setDeliveries(rows(deliveryList)); }
+    if (module === "Analytics") { const [o, p, r, a, t] = await Promise.all([api.analytics.overview(id), api.analytics.payments(id), api.analytics.risk(id), api.analytics.accounts(id), api.transactions.analytics(id)]); setOverview(o); setAnalyticsPayments(p); setAnalyticsRisk(r); setAnalyticsAccounts(a); setTxAnalytics(t); }
   }
-  useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      try { setLoading(true); setError(""); const id = await loadWorkspace(); if (id && !cancelled) await loadModule("Overview", id); }
-      catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : "Unable to load workspace."); }
-      finally { if (!cancelled) setLoading(false); }
-    })();
-    return () => { cancelled = true; };
-  }, []);
-  useEffect(() => {
-    if (!orgId || active === "Overview") return;
-    let cancelled = false;
-    (async () => { try { setBusy(true); setError(""); await loadModule(active); } catch (e) { if (!cancelled) setError(e instanceof Error ? e.message : `Unable to load ${active}.`); } finally { if (!cancelled) setBusy(false); } })();
-    return () => { cancelled = true; };
-  }, [orgId, active]);
+  useEffect(() => { let cancelled = false; (async () => { try { setLoading(true); setError(""); const id = await loadWorkspace(); if (id && !cancelled) await loadModule("Overview", id); } catch (err) { if (!cancelled) setError(err instanceof Error ? err.message : "Unable to load workspace."); } finally { if (!cancelled) setLoading(false); } })(); return () => { cancelled = true; }; }, []);
+  useEffect(() => { if (!orgId || active === "Overview") return; let cancelled = false; (async () => { try { setBusy(true); setError(""); await loadModule(active); } catch (err) { if (!cancelled) setError(err instanceof Error ? err.message : `Unable to load ${active}.`); } finally { if (!cancelled) setBusy(false); } })(); return () => { cancelled = true; }; }, [orgId, active]);
 
-  const filteredTransactions = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return transactions;
-    return transactions.filter(t => [t.reference, t.type, t.status, t.currency, t.description ?? ""].some(v => v.toLowerCase().includes(q)));
-  }, [transactions, search]);
-  const filteredPayments = useMemo(() => {
-    const q = search.toLowerCase().trim();
-    if (!q) return payments;
-    return payments.filter(p => Object.values(p).some(v => String(v ?? "").toLowerCase().includes(q)));
-  }, [payments, search]);
-
-  const openPayment = () => {
-    setPayment({ debitAccountId: accounts[0]?.id ?? "", creditAccountId: accounts[1]?.id ?? "", amount: "", currency, method: "card", description: "", idempotencyKey: `pay_${crypto.randomUUID()}` });
-    setModal("payment");
-  };
+  const filteredTransactions = useMemo(() => { const q = search.toLowerCase().trim(); if (!q) return transactions; return transactions.filter((item) => [item.reference, item.type, item.status, item.currency, item.description ?? ""].some((value) => value.toLowerCase().includes(q))); }, [transactions, search]);
+  const filteredPayments = useMemo(() => { const q = search.toLowerCase().trim(); if (!q) return payments; return payments.filter((item) => Object.values(item).some((value) => String(value ?? "").toLowerCase().includes(q))); }, [payments, search]);
+  const openPayment = () => { setPayment({ debitAccountId: accounts[0]?.id ?? "", creditAccountId: accounts[1]?.id ?? "", amount: "", currency, method: "card", description: "", idempotencyKey: `pay_${crypto.randomUUID()}` }); setModal("payment"); };
   const openAccount = () => { setAccountForm({ code: "", name: "", type: "asset", currency }); setModal("account"); };
   const openWebhook = () => { setWebhook({ url: "", secret: "" }); setModal("webhook"); };
-  async function createPayment() {
-    if (!payment.debitAccountId || !payment.creditAccountId || !payment.amount) { setError("Select both accounts and enter an amount."); return; }
-    if (payment.debitAccountId === payment.creditAccountId) { setError("Debit and credit accounts must be different."); return; }
-    try { setSaving(true); setError(""); await api.payments.create({ organizationId: orgId, ...payment }); setModal(null); await loadModule("Payments"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to create payment."); }
-    finally { setSaving(false); }
-  }
-  async function createAccount() {
-    if (!accountForm.code || !accountForm.name) { setError("Enter an account code and name."); return; }
-    try { setSaving(true); setError(""); await api.accounts.create({ organizationId: orgId, ...accountForm }); setModal(null); await loadModule("Accounts"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to create account."); }
-    finally { setSaving(false); }
-  }
-  async function createWebhook() {
-    if (!webhook.url || !webhook.secret) { setError("Enter the endpoint URL and signing secret."); return; }
-    try { setSaving(true); setError(""); await api.webhooks.createEndpoint(orgId, webhook); setModal(null); await loadModule("Webhooks"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to create webhook."); }
-    finally { setSaving(false); }
-  }
-  async function deleteEndpoint(id: string) {
-    try { setBusy(true); await api.webhooks.deleteEndpoint(id); await loadModule("Webhooks"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to delete webhook."); }
-    finally { setBusy(false); }
-  }
-  async function reconcile() {
-    try { setBusy(true); setError(""); await api.reconciliation.run(orgId); await loadModule("Reconciliation"); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to run reconciliation."); }
-    finally { setBusy(false); }
-  }
-  async function saveSettings() {
-    try { setSaving(true); const updated = await api.organizations.update(orgId, { defaultCurrency: settingsCurrency }); setOrganization(updated); }
-    catch (e) { setError(e instanceof Error ? e.message : "Unable to save settings."); }
-    finally { setSaving(false); }
-  }
+  async function createPayment() { if (!payment.debitAccountId || !payment.creditAccountId || !payment.amount) { setError("Select both accounts and enter an amount."); return; } if (payment.debitAccountId === payment.creditAccountId) { setError("Debit and credit accounts must be different."); return; } try { setSaving(true); setError(""); await api.payments.create({ organizationId: orgId, ...payment }); setModal(null); await loadModule("Payments"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to create payment."); } finally { setSaving(false); } }
+  async function createAccount() { if (!accountForm.code || !accountForm.name) { setError("Enter an account code and name."); return; } try { setSaving(true); setError(""); await api.accounts.create({ organizationId: orgId, ...accountForm }); setModal(null); await loadModule("Accounts"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to create account."); } finally { setSaving(false); } }
+  async function createWebhook() { if (!webhook.url || !webhook.secret) { setError("Enter the endpoint URL and signing secret."); return; } try { setSaving(true); setError(""); await api.webhooks.createEndpoint(orgId, webhook); setModal(null); await loadModule("Webhooks"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to create webhook."); } finally { setSaving(false); } }
+  async function deleteEndpoint(id: string) { try { setBusy(true); await api.webhooks.deleteEndpoint(id); await loadModule("Webhooks"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to delete webhook."); } finally { setBusy(false); } }
+  async function reconcile() { try { setBusy(true); setError(""); await api.reconciliation.run(orgId); await loadModule("Reconciliation"); } catch (err) { setError(err instanceof Error ? err.message : "Unable to run reconciliation."); } finally { setBusy(false); } }
+  async function saveSettings() { try { setSaving(true); setError(""); const updated = await api.organizations.update(orgId, { defaultCurrency: settingsCurrency }); setOrganization(updated); } catch (err) { setError(err instanceof Error ? err.message : "Unable to save settings."); } finally { setSaving(false); } }
   function select(module: Module) { setActive(module); setSearch(""); setSelected(null); setError(""); setMobileOpen(false); }
   function logoutNow() { logout(); router.replace("/login"); }
 
-  if (loading) return <div className="v3-loading"><div className="v3-mark">V</div><strong>VOLTIS</strong><span>Preparing your financial workspace…</span></div>;
+  if (loading) return <div className="dashboard-loading"><div className="loading-mark">V</div><strong>VOLTIS</strong><span>Preparing your financial workspace…</span></div>;
 
   const paymentCompleted = overview?.payments.completed ?? 0;
   const paymentTotal = overview?.payments.total ?? 0;
   const paymentRate = overview?.payments.successRate ?? 0;
   const accountBalance = overview?.accounts.balance ?? 0;
   const riskAverage = overview?.risk.averageScore ?? 0;
+  const txTotal = overview?.transactions.total ?? txAnalytics?.total ?? 0;
 
-  return <div className={`v3-shell ${collapsed ? "collapsed" : ""}`}>
-    {mobileOpen && <button className="v3-backdrop" onClick={() => setMobileOpen(false)} aria-label="Close navigation" />}
-    <aside className={`v3-sidebar ${mobileOpen ? "mobile-open" : ""}`}>
-      <div className="v3-brand"><div className="v3-logo">V</div>{!collapsed && <div><b>VOLTIS</b><span>Financial infrastructure</span></div>}<button onClick={() => setCollapsed(x => !x)} className="v3-collapse">{collapsed ? <PanelLeftOpen size={17}/> : <PanelLeftClose size={17}/>}</button></div>
-      <div className="v3-org"><span>{initials(organization?.name ?? "VOLTIS")}</span>{!collapsed && <div><small>ORGANIZATION</small><b>{organization?.name ?? "VOLTIS"}</b></div>}{!collapsed && organizations.length > 1 && <ChevronRight size={14}/>}</div>
-      <nav className="v3-nav">{Array.from(new Set(nav.map(x => x.group))).map(group => <div key={group}>{!collapsed && <div className="v3-group">{group}</div>}{nav.filter(x => x.group === group).map(item => { const Icon = item.icon; return <button key={item.label} title={collapsed ? item.label : undefined} onClick={() => select(item.label)} className={`v3-nav-item ${active === item.label ? "active" : ""}`}><Icon size={17}/>{!collapsed && <span>{item.label}</span>}</button>; })}</div>)}</nav>
-      <div className="v3-side-bottom"><div className="v3-online"><i/>{!collapsed && "System online"}</div><button onClick={logoutNow}><LogOut size={16}/>{!collapsed && "Sign out"}</button></div>
+  const renderOverview = () => <div className="workspace-grid overview-workspace">
+    <div className="page-heading"><div><span className="eyebrow">Financial control center</span><h1>Good morning, {displayName}.</h1><p>Monitor money movement, ledger health and operational risk from one workspace.</p></div><div className="heading-actions"><button className="button secondary" onClick={() => loadModule("Overview")} disabled={busy}><RefreshCw size={15} /> Refresh</button><button className="button primary" onClick={openPayment}><Plus size={15} /> New payment</button></div></div>
+    <div className="metric-grid"><MetricCard label="Account balance" value={money(accountBalance, currency)} detail={`${number(overview?.accounts.total)} active accounts`} icon={<Wallet size={18} />} /><MetricCard label="Payment volume" value={money(overview?.payments.volume, currency)} detail={`${number(paymentTotal)} payments processed`} icon={<CreditCard size={18} />} tone="green" /><MetricCard label="Success rate" value={`${paymentRate.toFixed(1)}%`} detail={`${number(paymentCompleted)} completed payments`} icon={<CheckCircle2 size={18} />} tone="amber" /><MetricCard label="Risk score" value={riskAverage.toFixed(1)} detail={`${number(overview?.risk.review)} items in review`} icon={<ShieldCheck size={18} />} tone="violet" /></div>
+    <div className="dashboard-columns main-columns"><section className="panel hero-panel"><SectionTitle eyebrow="Payment operations" title="Payment performance" action={<button className="text-button" onClick={() => select("Payments")}>View payments <ChevronRight size={14} /></button>} /><div className="hero-chart"><div className="chart-summary"><div><span>Success rate</span><strong>{paymentRate.toFixed(1)}%</strong></div><div className="chart-legend"><i className="legend-success" /> Completed <i className="legend-failed" /> Failed</div></div><div className="bar-chart">{[68,42,84,57,91,48,76,64,88,52,79,94].map((height,index)=><div className="bar-group" key={index}><i style={{height:`${height}%`}} /><b style={{height:`${Math.max(12,height*.55)}%`}} /></div>)}</div><div className="chart-axis"><span>Apr</span><span>May</span><span>Jun</span><span>Jul</span><span>Aug</span><span>Sep</span></div></div></section><section className="panel health-panel"><SectionTitle eyebrow="Ledger" title="Financial health" /><div className="health-list"><div className="health-item"><div className="health-icon good"><CheckCircle2 size={16} /></div><div><strong>Ledger balanced</strong><span>Debits and credits are aligned.</span></div><b className="health-value">{overview?.ledger.balanced ? "Yes" : "Check"}</b></div><div className="health-item"><div className="health-icon blue"><ArrowDownLeft size={16} /></div><div><strong>Total debits</strong><span>Recorded ledger movement.</span></div><b className="health-value">{money(overview?.ledger.debits, currency)}</b></div><div className="health-item"><div className="health-icon blue"><ArrowUpRight size={16} /></div><div><strong>Total credits</strong><span>Recorded ledger movement.</span></div><b className="health-value">{money(overview?.ledger.credits, currency)}</b></div></div><div className="health-footer"><span>System status</span><strong><i /> Operational</strong></div></section></div>
+    <div className="dashboard-columns lower-columns"><section className="panel activity-panel"><SectionTitle eyebrow="Live feed" title="Recent transactions" action={<button className="text-button" onClick={() => select("Transactions")}>Open ledger <ChevronRight size={14} /></button>} /><div className="activity-list">{(txAnalytics?.recent ?? transactions.slice(0,5)).slice(0,5).map((item)=><button className="activity-row" key={item.id} onClick={()=>{setSelected(item);setActive("Transactions");}}><div className="activity-symbol"><CircleDollarSign size={16}/></div><div className="activity-main"><strong>{item.description || item.type}</strong><span>{item.reference} · {formatDate(item.createdAt)}</span></div><div className="activity-amount"><b>{money(item.amount,item.currency)}</b><Status value={item.status}/></div></button>)}{!(txAnalytics?.recent?.length || transactions.length) && <EmptyState title="No transactions yet" description="Your transaction activity will appear here as the ledger starts moving." />}</div></section><section className="panel risk-panel"><SectionTitle eyebrow="Risk engine" title="Risk posture" action={<button className="text-button" onClick={()=>select("Risk")}>Open risk <ChevronRight size={14}/></button>} /><div className="risk-score"><div className="donut"><span>{riskAverage.toFixed(0)}</span><small>avg</small></div><div><strong>Control posture</strong><p>{number(overview?.risk.allowed)} allowed · {number(overview?.risk.review)} review · {number(overview?.risk.blocked)} blocked</p></div></div><div className="risk-track"><span style={{width:`${Math.min(100,Math.max(0,paymentRate))}%`}} /></div><div className="risk-foot"><span>Allowed activity</span><b>{overview?.risk.total ? ((overview.risk.allowed / overview.risk.total)*100).toFixed(1) : "0.0"}%</b></div></section></div>
+  </div>;
+
+  const renderAccounts = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Workspace</span><h1>Accounts</h1><p>Your operational accounts and current balances.</p></div><button className="button primary" onClick={openAccount}><Plus size={15}/> New account</button></div><div className="metric-grid compact"><MetricCard label="Accounts" value={number(accounts.length)} detail="Configured in workspace" icon={<Wallet size={18}/>} /><MetricCard label="Total balance" value={money(accounts.reduce((sum,item)=>sum+Number(item.balance||0),0),currency)} detail="Across all accounts" icon={<CircleDollarSign size={18}/>} tone="green"/></div><section className="panel table-panel"><SectionTitle eyebrow="Account registry" title="All accounts"/><div className="data-table"><table><thead><tr><th>Account</th><th>Type</th><th>Currency</th><th>Balance</th><th>Status</th></tr></thead><tbody>{accounts.map(item=><tr key={item.id}><td><strong>{item.name}</strong><span>{item.code}</span></td><td>{item.type}</td><td>{item.currency}</td><td className="amount">{money(item.balance,item.currency)}</td><td><Status value={item.isActive?"Active":"Inactive"}/></td></tr>)}</tbody></table>{!accounts.length&&<EmptyState title="No accounts" description="Create your first account to start moving money through VOLTIS."/>}</div></section></div>;
+
+  const renderTransactions = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Workspace</span><h1>{active === "Ledger" ? "Ledger activity" : "Transactions"}</h1><p>Search and inspect every transaction recorded for this organization.</p></div><div className="heading-stat"><span>Total</span><strong>{number(txTotal)}</strong></div></div><section className="panel table-panel"><div className="table-toolbar"><div><span className="eyebrow">Transaction registry</span><strong>{number(filteredTransactions.length)} records</strong></div><label className="search-field"><Search size={15}/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search reference, type, status…"/></label></div><div className="data-table"><table><thead><tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>{filteredTransactions.map(item=><tr className="interactive-row" key={item.id} onClick={()=>setSelected(item)}><td><strong>{item.reference}</strong><span>{item.description||"No description"}</span></td><td>{item.type}</td><td className="amount">{money(item.amount,item.currency)}</td><td><Status value={item.status}/></td><td>{formatDate(item.createdAt)}</td></tr>)}</tbody></table>{!filteredTransactions.length&&<EmptyState title="Nothing matched" description="There are no transactions matching your current search."/>}</div></section>{selected&&<aside className="detail-drawer"><button className="drawer-close" onClick={()=>setSelected(null)}><X size={16}/></button><span className="eyebrow">Transaction detail</span><h2>{selected.reference}</h2><Status value={selected.status}/><dl><dt>Amount</dt><dd>{money(selected.amount,selected.currency)}</dd><dt>Type</dt><dd>{selected.type}</dd><dt>Description</dt><dd>{text(selected.description)}</dd><dt>Created</dt><dd>{formatDate(selected.createdAt)}</dd></dl></aside>}</div>;
+
+  const renderPayments = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Financial operations</span><h1>Payments</h1><p>Create, monitor and search payment activity.</p></div><button className="button primary" onClick={openPayment}><Plus size={15}/> New payment</button></div><section className="panel table-panel"><div className="table-toolbar"><div><span className="eyebrow">Payment activity</span><strong>{number(filteredPayments.length)} records</strong></div><label className="search-field"><Search size={15}/><input value={search} onChange={event=>setSearch(event.target.value)} placeholder="Search payments…"/></label></div><div className="data-table"><table><thead><tr><th>Reference</th><th>Method</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>{filteredPayments.map((item,index)=><tr key={String(item.id??index)}><td><strong>{text(item.reference,text(item.id,"Payment"))}</strong><span>{text(item.description,"Payment")}</span></td><td>{text(item.method)}</td><td className="amount">{money(item.amount,text(item.currency,currency))}</td><td><Status value={item.status}/></td><td>{formatDate(item.createdAt)}</td></tr>)}</tbody></table>{!filteredPayments.length&&<EmptyState title="No payments" description="Payment records will appear here after the first payment is created."/>}</div></section></div>;
+
+  const renderRisk = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Controls</span><h1>Risk engine</h1><p>Review risk decisions and keep payment activity under control.</p></div><div className="heading-stat"><span>Average score</span><strong>{riskAverage.toFixed(1)}</strong></div></div><div className="metric-grid compact"><MetricCard label="Evaluations" value={number(overview?.risk.total)} detail="Risk decisions" icon={<ShieldCheck size={18}/>} /><MetricCard label="Allowed" value={number(overview?.risk.allowed)} detail="Passed controls" icon={<CheckCircle2 size={18}/>} tone="green" /><MetricCard label="Review" value={number(overview?.risk.review)} detail="Needs attention" icon={<Activity size={18}/>} tone="amber" /><MetricCard label="Blocked" value={number(overview?.risk.blocked)} detail="Stopped by controls" icon={<X size={18}/>} tone="violet" /></div><section className="panel table-panel"><SectionTitle eyebrow="Risk decisions" title="Evaluation history"/><div className="data-table"><table><thead><tr><th>Payment</th><th>Score</th><th>Decision</th><th>Reason</th><th>Created</th></tr></thead><tbody>{risk.map((item,index)=><tr key={String(item.id??index)}><td><strong>{text(item.paymentId,text(item.id,"Evaluation"))}</strong></td><td>{text(item.score)}</td><td><Status value={item.status??item.decision}/></td><td>{text(item.reason)}</td><td>{formatDate(item.createdAt)}</td></tr>)}</tbody></table>{!risk.length&&<EmptyState title="No risk evaluations" description="Risk decisions will appear as payment activity is evaluated."/>}</div></section></div>;
+
+  const renderReconciliation = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Controls</span><h1>Reconciliation</h1><p>Compare financial records and keep the ledger aligned.</p></div><button className="button primary" onClick={reconcile} disabled={busy}><RefreshCw size={15}/> Run reconciliation</button></div><div className="metric-grid compact"><MetricCard label="Runs" value={number(overview?.reconciliation.total)} detail="Total reconciliation records" icon={<FileCheck2 size={18}/>} /><MetricCard label="Completed" value={number(overview?.reconciliation.completed)} detail="Successfully reconciled" icon={<CheckCircle2 size={18}/>} tone="green" /></div><section className="panel table-panel"><SectionTitle eyebrow="Reconciliation log" title="Latest runs"/><div className="data-table"><table><thead><tr><th>Reference</th><th>Status</th><th>Difference</th><th>Created</th></tr></thead><tbody>{reconciliation.map((item,index)=><tr key={String(item.id??index)}><td><strong>{text(item.reference,text(item.id,"Run"))}</strong></td><td><Status value={item.status}/></td><td className="amount">{text(item.difference)}</td><td>{formatDate(item.createdAt)}</td></tr>)}</tbody></table>{!reconciliation.length&&<EmptyState title="No reconciliation runs" description="Run a reconciliation to create your first control record."/>}</div></section></div>;
+
+  const renderWebhooks = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Developer</span><h1>Webhooks</h1><p>Connect VOLTIS events to your external systems.</p></div><button className="button primary" onClick={openWebhook}><Plus size={15}/> Add endpoint</button></div><div className="dashboard-columns main-columns"><section className="panel table-panel"><SectionTitle eyebrow="Endpoints" title="Configured endpoints"/><div className="data-table"><table><thead><tr><th>Endpoint</th><th>Status</th><th>Created</th><th/></tr></thead><tbody>{endpoints.map((item,index)=><tr key={String(item.id??index)}><td><strong>{text(item.url,"Endpoint")}</strong><span>{text(item.id)}</span></td><td><Status value={item.isActive===false?"Inactive":"Active"}/></td><td>{formatDate(item.createdAt)}</td><td><button className="icon-danger" onClick={()=>deleteEndpoint(String(item.id))}><X size={14}/></button></td></tr>)}</tbody></table>{!endpoints.length&&<EmptyState title="No endpoints" description="Add an endpoint to start receiving signed financial events."/>}</div></section><section className="panel"><SectionTitle eyebrow="Delivery feed" title="Recent deliveries"/><div className="simple-list">{deliveries.slice(0,8).map((item,index)=><div className="simple-row" key={String(item.id??index)}><div><strong>{text(item.eventType,text(item.event,"Webhook delivery"))}</strong><span>{formatDate(item.createdAt)}</span></div><Status value={item.status}/></div>)}{!deliveries.length&&<EmptyState title="No deliveries" description="Webhook delivery attempts will show here."/>}</div></section></div></div>;
+
+  const renderAnalytics = () => <div className="module-page"><div className="page-heading"><div><span className="eyebrow">Developer</span><h1>Analytics</h1><p>Operational intelligence across payments, accounts, risk and transactions.</p></div></div><div className="analytics-grid"><section className="panel analytics-card"><SectionTitle eyebrow="Payments" title="Payment analytics"/><JsonPreview value={analyticsPayments}/></section><section className="panel analytics-card"><SectionTitle eyebrow="Risk" title="Risk analytics"/><JsonPreview value={analyticsRisk}/></section><section className="panel analytics-card"><SectionTitle eyebrow="Accounts" title="Account analytics"/><JsonPreview value={analyticsAccounts}/></section><section className="panel analytics-card"><SectionTitle eyebrow="Transactions" title="Transaction analytics"/><JsonPreview value={txAnalytics}/></section></div></div>;
+
+  const renderSettings = () => <div className="module-page narrow-page"><div className="page-heading"><div><span className="eyebrow">System</span><h1>Settings</h1><p>Configure the defaults for your financial workspace.</p></div></div><section className="panel settings-panel"><SectionTitle eyebrow="Organization" title={organization?.name??"VOLTIS"}/><div className="settings-row"><div><strong>Default currency</strong><span>Used when creating new accounts and payments.</span></div><select value={settingsCurrency} onChange={event=>setSettingsCurrency(event.target.value)}><option value="NGN">NGN — Nigerian Naira</option><option value="USD">USD — US Dollar</option><option value="EUR">EUR — Euro</option><option value="GBP">GBP — Pound Sterling</option></select></div><div className="settings-row"><div><strong>Workspace theme</strong><span>Switch between the VOLTIS dark and light interfaces.</span></div><button className="theme-switch" onClick={()=>setTheme(theme==="dark"?"light":"dark")}><span>{theme==="dark"?<Moon size={15}/>:<Sun size={15}/>}</span>{theme==="dark"?"Dark":"Light"}<ChevronDown size={14}/></button></div><div className="settings-save"><button className="button primary" onClick={saveSettings} disabled={saving}>{saving?"Saving…":"Save changes"}</button></div></section></div>;
+
+  const content = active === "Overview" ? renderOverview() : active === "Accounts" ? renderAccounts() : active === "Transactions" || active === "Ledger" ? renderTransactions() : active === "Payments" ? renderPayments() : active === "Risk" ? renderRisk() : active === "Reconciliation" ? renderReconciliation() : active === "Webhooks" ? renderWebhooks() : active === "Analytics" ? renderAnalytics() : renderSettings();
+
+  return <div className={`dashboard-shell ${collapsed?"is-collapsed":""}`}>
+    {mobileOpen&&<button className="sidebar-backdrop" onClick={()=>setMobileOpen(false)} aria-label="Close navigation"/>}
+    <aside className={`sidebar ${mobileOpen?"mobile-open":""}`}>
+      <div className="brand-row"><div className="brand-mark">V</div>{!collapsed&&<div className="brand-copy"><strong>VOLTIS</strong><span>Financial infrastructure</span></div>}<button className="collapse-button" onClick={()=>setCollapsed(value=>!value)}>{collapsed?<PanelLeftOpen size={17}/>:<PanelLeftClose size={17}/>}</button></div>
+      <div className="organization"><span>{initials(organization?.name??"VOLTIS")}</span>{!collapsed&&<div><small>Workspace</small><strong>{organization?.name??"VOLTIS"}</strong></div>}</div>
+      <nav className="navigation">{["Workspace","Operations","Controls","Developer","System"].map(group=><div className="nav-group" key={group}>{!collapsed&&<span className="nav-label">{group}</span>}{nav.filter(item=>item.group===group).map(item=>{const Icon=item.icon;return <button key={item.label} title={collapsed?item.label:undefined} className={`nav-item ${active===item.label?"active":""}`} onClick={()=>select(item.label)}><Icon size={17}/>{!collapsed&&<span>{item.label}</span>}</button>})}</div>)}</nav>
+      <div className="sidebar-footer"><div className="online"><i/>{!collapsed&&"All systems operational"}</div><button className="signout" onClick={logoutNow}><LogOut size={16}/>{!collapsed&&"Sign out"}</button></div>
     </aside>
-
-    <main className="v3-main">
-      <header className="v3-topbar"><div className="v3-breadcrumb"><button className="v3-icon mobile" onClick={() => setMobileOpen(true)}><Menu size={18}/></button><span>VOLTIS</span><b>/</b><strong>{active}</strong></div><div className="v3-top-actions"><button className="v3-icon" disabled={busy} onClick={() => loadModule(active)}><RefreshCw size={17} className={busy ? "spin" : ""}/></button><button className="v3-icon"><Bell size={17}/><i/></button><button className="v3-icon" onClick={() => setTheme(x => x === "dark" ? "light" : "dark")}>{theme === "dark" ? <Sun size={17}/> : <Moon size={17}/>}</button><div className="v3-user"><span>{initials(displayName)}</span><div><b>{displayName}</b><small>{user?.email}</small></div></div></div></header>
-      <section className="v3-content">
-        <div className="v3-head"><div><small>FINANCIAL CONTROL CENTER</small><h1>{active === "Overview" ? `Welcome back, ${displayName}.` : active}</h1><p>{active === "Overview" ? "A single operating surface for payments, accounts, ledger integrity, risk and reconciliation." : `Manage ${active.toLowerCase()} across your VOLTIS organization.`}</p></div><div className="v3-head-tags"><span><i/> Live</span><b>{currency}</b></div></div>
-        {error && <div className="v3-error"><X size={17}/><div><b>Action could not be completed</b><span>{error}</span></div><button onClick={() => setError("")}><X size={15}/></button></div>}
-
-        {active === "Overview" && <div className="v3-stack">
-          <div className="v3-kpis">
-            <Kpi label="Available balance" value={money(accountBalance, currency)} note={`${num(overview?.accounts.total)} active accounts`} />
-            <Kpi label="Payment volume" value={money(overview?.payments.volume, currency)} note={`${num(paymentTotal)} payments processed`} />
-            <Kpi label="Success rate" value={`${Number(paymentRate).toFixed(1)}%`} note={`${num(paymentCompleted)} completed`} />
-            <Kpi label="Risk score" value={Number(riskAverage).toFixed(1)} note={`${num(overview?.risk.total)} assessments`} />
-          </div>
-          <div className="v3-overview-grid">
-            <Panel title="Payment performance" eyebrow="OPERATIONS" action="Payments" onAction={() => select("Payments")}>
-              <div className="v3-performance"><div><span>Successful processing</span><strong>{Number(paymentRate).toFixed(1)}%</strong><div className="v3-progress"><i style={{ width: `${Math.max(0, Math.min(100, Number(paymentRate)))}%` }}/></div></div><div className="v3-mini-stats"><Stat label="Completed" value={num(paymentCompleted)}/><Stat label="Pending" value={num(overview?.payments.pending)}/><Stat label="Failed" value={num(overview?.payments.failed)}/><Stat label="Processing" value={num(overview?.payments.processing)}/></div></div>
-            </Panel>
-            <Panel title="Ledger integrity" eyebrow="CONTROL"><div className={`v3-health ${overview?.ledger.balanced ? "good" : "bad"}`}><CheckCircle2 size={20}/><div><b>{overview?.ledger.balanced ? "Ledger is balanced" : "Ledger requires review"}</b><span>Debits {money(overview?.ledger.debits, currency)} · Credits {money(overview?.ledger.credits, currency)}</span></div></div><div className="v3-two-stats"><Stat label="Reconciliations" value={num(overview?.reconciliation.total)}/><Stat label="Completed" value={num(overview?.reconciliation.completed)}/></div></Panel>
-          </div>
-          <Panel title="Recent financial activity" eyebrow="TRANSACTION ENGINE" action="View all" onAction={() => select("Transactions")}>
-            {transactions.length === 0 ? <Empty icon={<Activity size={20}/>} title="No transaction activity yet" description="Transactions created by the financial engine will appear here."/> : <TransactionTable data={transactions.slice(0, 6)} onSelect={setSelected}/>} 
-          </Panel>
-        </div>}
-
-        {active === "Accounts" && <div className="v3-stack"><ActionBar title="Account registry" description="Manage the accounts used by your double-entry ledger." button="New account" onClick={openAccount}/><Panel title="Accounts" eyebrow={`${accounts.length} ACCOUNTS`}><AccountTable data={accounts}/></Panel></div>}
-        {active === "Transactions" && <div className="v3-stack"><DataToolbar search={search} setSearch={setSearch} placeholder="Search reference, status or type"/><Panel title="Transactions" eyebrow="TRANSACTION ENGINE">{filteredTransactions.length ? <TransactionTable data={filteredTransactions} onSelect={setSelected}/> : <Empty icon={<Activity size={20}/>} title="No transactions found" description={search ? "Try another search term." : "Transactions created by the financial engine will appear here."}/>}</Panel></div>}
-        {active === "Ledger" && <div className="v3-stack"><div className="v3-kpis"><Kpi label="Debits" value={money(overview?.ledger.debits, currency)} note="Ledger total"/><Kpi label="Credits" value={money(overview?.ledger.credits, currency)} note="Ledger total"/><Kpi label="Balance state" value={overview?.ledger.balanced ? "Balanced" : "Review"} note="Double-entry control"/><Kpi label="Transactions" value={num(txAnalytics?.total)} note="Ledger source activity"/></div><Panel title="Ledger activity" eyebrow="DOUBLE-ENTRY"><TransactionTable data={transactions} onSelect={setSelected}/></Panel></div>}
-        {active === "Payments" && <div className="v3-stack"><ActionBar title="Payment operations" description="Create and monitor payments through the financial engine." button="Create payment" onClick={openPayment}/><div className="v3-kpis"><Kpi label="Total payments" value={num(paymentTotal)} note="All payment records"/><Kpi label="Processed volume" value={money(overview?.payments.volume, currency)} note="Payment volume"/><Kpi label="Success rate" value={`${Number(paymentRate).toFixed(1)}%`} note="Completed / total"/><Kpi label="Failed" value={num(overview?.payments.failed)} note="Requires attention"/></div><DataToolbar search={search} setSearch={setSearch} placeholder="Search payments"/><Panel title="Payment activity" eyebrow="PAYMENT PROCESSING">{filteredPayments.length ? <GenericTable data={filteredPayments} preferred={["status","amount","currency","method","createdAt"]} onSelect={setSelected}/> : <Empty icon={<CreditCard size={20}/>} title="No payments yet" description="Create a payment to begin tracking processing activity."/>}</Panel></div>}
-        {active === "Risk" && <div className="v3-stack"><div className="v3-kpis"><Kpi label="Assessments" value={num(overview?.risk.total)} note="Total risk decisions"/><Kpi label="Allowed" value={num(overview?.risk.allowed)} note="Passed controls"/><Kpi label="Review" value={num(overview?.risk.review)} note="Needs review"/><Kpi label="Blocked" value={num(overview?.risk.blocked)} note="Declined by controls"/></div><Panel title="Risk assessments" eyebrow="RISK ENGINE">{risk.length ? <GenericTable data={risk} preferred={["status","score","decision","createdAt"]} onSelect={setSelected}/> : <Empty icon={<ShieldCheck size={20}/>} title="No risk assessments" description="Risk decisions will appear here as payments are evaluated."/>}</Panel></div>}
-        {active === "Reconciliation" && <div className="v3-stack"><ActionBar title="Reconciliation" description="Compare financial records and surface discrepancies." button="Run reconciliation" onClick={reconcile} busy={busy}/><Panel title="Reconciliation runs" eyebrow={`${reconciliation.length} RUNS`}>{reconciliation.length ? <GenericTable data={reconciliation} preferred={["status","matchedCount","discrepancyCount","createdAt"]} onSelect={setSelected}/> : <Empty icon={<FileCheck2 size={20}/>} title="No reconciliation runs" description="Run reconciliation when financial activity needs to be verified."/>}</Panel></div>}
-        {active === "Webhooks" && <div className="v3-stack"><ActionBar title="Webhook delivery" description="Connect VOLTIS events to external systems." button="Add endpoint" onClick={openWebhook}/><div className="v3-overview-grid"><Panel title="Endpoints" eyebrow={`${endpoints.length} ENDPOINTS`}>{endpoints.length ? <GenericTable data={endpoints} preferred={["url","active","createdAt"]} actionKey="id" onAction={deleteEndpoint} onSelect={setSelected}/> : <Empty icon={<Webhook size={20}/>} title="No webhook endpoints" description="Add an endpoint to start receiving financial events."/>}</Panel><Panel title="Recent deliveries" eyebrow={`${deliveries.length} DELIVERIES`}>{deliveries.length ? <GenericTable data={deliveries} preferred={["status","event","createdAt"]} onSelect={setSelected}/> : <Empty icon={<Webhook size={20}/>} title="No deliveries yet" description="Webhook delivery attempts will appear here."/>}</Panel></div></div>}
-        {active === "Analytics" && <Analytics overview={overview} tx={txAnalytics} payments={analyticsPayments} risk={analyticsRisk} accounts={analyticsAccounts} currency={currency}/>} 
-        {active === "Settings" && <div className="v3-stack"><Panel title="Workspace settings" eyebrow="ORGANIZATION"><div className="v3-form-grid"><Field label="Organization"><input value={organization?.name ?? ""} disabled/></Field><Field label="Default currency"><select value={settingsCurrency} onChange={e => setSettingsCurrency(e.target.value)}><option>NGN</option><option>USD</option><option>EUR</option><option>GBP</option></select></Field></div><div className="v3-form-actions"><button className="v3-primary" onClick={saveSettings} disabled={saving}>{saving ? "Saving…" : "Save changes"}</button></div></Panel></div>}
-      </section>
+    <main className="main-area">
+      <header className="topbar"><div className="topbar-left"><button className="mobile-menu" onClick={()=>setMobileOpen(true)}><Menu size={18}/></button><span>VOLTIS</span><ChevronRight size={13}/><strong>{active}</strong></div><div className="topbar-right"><label className="top-search"><Search size={14}/><input placeholder="Search"/></label><button className="top-icon" onClick={()=>setTheme(theme==="dark"?"light":"dark")} aria-label="Toggle theme">{theme==="dark"?<Sun size={16}/>:<Moon size={16}/>}</button><button className="top-icon" aria-label="Notifications"><Bell size={16}/><i/></button><div className="user-chip"><span>{initials(`${user?.firstName??"VOLTIS"} ${user?.lastName??""}`)}</span><div><strong>{user?.firstName??"VOLTIS"}</strong><small>{user?.email??""}</small></div></div></div></header>
+      <div className="page-content">{error&&<div className="error-banner"><div><strong>Something needs attention</strong><span>{error}</span></div><button onClick={()=>setError("")}><X size={15}/></button></div>}{content}</div>
     </main>
-
-    {selected && <div className="v3-detail" onClick={() => setSelected(null)}><div className="v3-detail-card" onClick={e => e.stopPropagation()}><div className="v3-detail-head"><div><small>RECORD DETAILS</small><h2>Financial record</h2></div><button className="v3-icon" onClick={() => setSelected(null)}><X size={17}/></button></div><pre>{JSON.stringify(selected, null, 2)}</pre></div></div>}
-    {modal === "payment" && <Modal title="Create payment" close={() => setModal(null)}><div className="v3-form-grid"><Field label="Debit account"><select value={payment.debitAccountId} onChange={e => setPayment(p => ({...p, debitAccountId: e.target.value}))}><option value="">Select account</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.code} · {a.name}</option>)}</select></Field><Field label="Credit account"><select value={payment.creditAccountId} onChange={e => setPayment(p => ({...p, creditAccountId: e.target.value}))}><option value="">Select account</option>{accounts.map(a => <option key={a.id} value={a.id}>{a.code} · {a.name}</option>)}</select></Field><Field label="Amount"><input type="number" min="0.01" step="0.01" value={payment.amount} onChange={e => setPayment(p => ({...p, amount: e.target.value}))} placeholder="0.00"/></Field><Field label="Currency"><select value={payment.currency} onChange={e => setPayment(p => ({...p, currency: e.target.value}))}><option>NGN</option><option>USD</option><option>EUR</option><option>GBP</option></select></Field><Field label="Payment method"><select value={payment.method} onChange={e => setPayment(p => ({...p, method: e.target.value as PaymentMethod}))}><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="wallet">Wallet</option><option value="cash">Cash</option></select></Field><Field label="Idempotency key"><input value={payment.idempotencyKey} onChange={e => setPayment(p => ({...p, idempotencyKey: e.target.value}))}/></Field><Field label="Description" wide><input value={payment.description} onChange={e => setPayment(p => ({...p, description: e.target.value}))} placeholder="Optional payment description"/></Field></div><ModalActions saving={saving} submit={createPayment} label="Create payment"/></Modal>}
-    {modal === "account" && <Modal title="Create account" close={() => setModal(null)}><div className="v3-form-grid"><Field label="Account code"><input value={accountForm.code} onChange={e => setAccountForm(a => ({...a, code: e.target.value}))} placeholder="1000"/></Field><Field label="Account name"><input value={accountForm.name} onChange={e => setAccountForm(a => ({...a, name: e.target.value}))} placeholder="Operating cash"/></Field><Field label="Account type"><select value={accountForm.type} onChange={e => setAccountForm(a => ({...a, type: e.target.value}))}><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="revenue">Revenue</option><option value="expense">Expense</option></select></Field><Field label="Currency"><select value={accountForm.currency} onChange={e => setAccountForm(a => ({...a, currency: e.target.value}))}><option>NGN</option><option>USD</option><option>EUR</option><option>GBP</option></select></Field></div><ModalActions saving={saving} submit={createAccount} label="Create account"/></Modal>}
-    {modal === "webhook" && <Modal title="Add webhook endpoint" close={() => setModal(null)}><div className="v3-form-grid"><Field label="Endpoint URL" wide><input type="url" value={webhook.url} onChange={e => setWebhook(w => ({...w, url: e.target.value}))} placeholder="https://example.com/webhooks/voltis"/></Field><Field label="Signing secret" wide><input value={webhook.secret} onChange={e => setWebhook(w => ({...w, secret: e.target.value}))} placeholder="Signing secret"/></Field></div><ModalActions saving={saving} submit={createWebhook} label="Add endpoint"/></Modal>}
+    {modal&&<div className="modal-layer" role="dialog" aria-modal="true"><button className="modal-dismiss" onClick={()=>setModal(null)} aria-label="Close"/><section className="modal-card"><header><div><span className="eyebrow">VOLTIS</span><h2>{modal==="payment"?"Create payment":modal==="account"?"Create account":"Add webhook endpoint"}</h2></div><button className="drawer-close" onClick={()=>setModal(null)}><X size={16}/></button></header>{modal==="payment"&&<div className="form-grid"><label>Debit account<select value={payment.debitAccountId} onChange={event=>setPayment({...payment,debitAccountId:event.target.value})}><option value="">Select account</option>{accounts.map(item=><option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label><label>Credit account<select value={payment.creditAccountId} onChange={event=>setPayment({...payment,creditAccountId:event.target.value})}><option value="">Select account</option>{accounts.map(item=><option key={item.id} value={item.id}>{item.code} · {item.name}</option>)}</select></label><label>Amount<input value={payment.amount} onChange={event=>setPayment({...payment,amount:event.target.value})} type="number" min="0" placeholder="0.00"/></label><label>Method<select value={payment.method} onChange={event=>setPayment({...payment,method:event.target.value as PaymentMethod})}><option value="card">Card</option><option value="bank_transfer">Bank transfer</option><option value="wallet">Wallet</option><option value="cash">Cash</option></select></label><label className="full">Description<input value={payment.description} onChange={event=>setPayment({...payment,description:event.target.value})} placeholder="Optional description"/></label><div className="modal-actions"><button className="button secondary" onClick={()=>setModal(null)}>Cancel</button><button className="button primary" onClick={createPayment} disabled={saving}>{saving?"Creating…":"Create payment"}</button></div></div>}{modal==="account"&&<div className="form-grid"><label>Account code<input value={accountForm.code} onChange={event=>setAccountForm({...accountForm,code:event.target.value})} placeholder="1000"/></label><label>Account name<input value={accountForm.name} onChange={event=>setAccountForm({...accountForm,name:event.target.value})} placeholder="Operating account"/></label><label>Type<select value={accountForm.type} onChange={event=>setAccountForm({...accountForm,type:event.target.value})}><option value="asset">Asset</option><option value="liability">Liability</option><option value="equity">Equity</option><option value="revenue">Revenue</option><option value="expense">Expense</option></select></label><label>Currency<select value={accountForm.currency} onChange={event=>setAccountForm({...accountForm,currency:event.target.value})}><option value="NGN">NGN</option><option value="USD">USD</option><option value="EUR">EUR</option><option value="GBP">GBP</option></select></label><div className="modal-actions"><button className="button secondary" onClick={()=>setModal(null)}>Cancel</button><button className="button primary" onClick={createAccount} disabled={saving}>{saving?"Creating…":"Create account"}</button></div></div>}{modal==="webhook"&&<div className="form-grid"><label className="full">Endpoint URL<input value={webhook.url} onChange={event=>setWebhook({...webhook,url:event.target.value})} placeholder="https://example.com/webhooks"/></label><label className="full">Signing secret<input value={webhook.secret} onChange={event=>setWebhook({...webhook,secret:event.target.value})} placeholder="Signing secret"/></label><div className="modal-actions"><button className="button secondary" onClick={()=>setModal(null)}>Cancel</button><button className="button primary" onClick={createWebhook} disabled={saving}>{saving?"Adding…":"Add endpoint"}</button></div></div>}</section></div>}
   </div>;
 }
-
-function Kpi({ label, value, note }: { label: string; value: string; note: string }) { return <div className="v3-kpi"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>; }
-function Stat({ label, value }: { label: string; value: string }) { return <div><span>{label}</span><b>{value}</b></div>; }
-function Panel({ title, eyebrow, action, onAction, children }: { title: string; eyebrow?: string; action?: string; onAction?: () => void; children: React.ReactNode }) { return <section className="v3-panel"><header><div><small>{eyebrow}</small><h2>{title}</h2></div>{action && <button className="v3-link" onClick={onAction}>{action}<ChevronRight size={14}/></button>}</header><div className="v3-panel-body">{children}</div></section>; }
-function ActionBar({ title, description, button, onClick, busy }: { title: string; description: string; button: string; onClick: () => void; busy?: boolean }) { return <div className="v3-actionbar"><div><small>OPERATIONS</small><b>{title}</b><span>{description}</span></div><button className="v3-primary" onClick={onClick} disabled={busy}><Plus size={15}/>{busy ? "Working…" : button}</button></div>; }
-function DataToolbar({ search, setSearch, placeholder }: { search: string; setSearch: (x: string) => void; placeholder: string }) { return <div className="v3-toolbar"><div><small>DATA VIEW</small><b>Operational records</b></div><label><Search size={15}/><input value={search} onChange={e => setSearch(e.target.value)} placeholder={placeholder}/></label></div>; }
-function Empty({ icon, title, description }: { icon: React.ReactNode; title: string; description: string }) { return <div className="v3-empty"><div>{icon}</div><b>{title}</b><span>{description}</span></div>; }
-function AccountTable({ data }: { data: Account[] }) { return data.length ? <div className="v3-table"><table><thead><tr><th>Code</th><th>Account</th><th>Type</th><th>Currency</th><th>Balance</th><th>Status</th></tr></thead><tbody>{data.map(a => <tr key={a.id}><td><b>{a.code}</b></td><td>{a.name}</td><td>{a.type}</td><td>{a.currency}</td><td>{money(a.balance, a.currency)}</td><td><span className={`v3-status ${statusTone(a.isActive ? "active" : "inactive")}`}>{a.isActive ? "Active" : "Inactive"}</span></td></tr>)}</tbody></table></div> : <Empty icon={<Wallet size={20}/>} title="No accounts yet" description="Create the first account for this organization."/>; }
-function TransactionTable({ data, onSelect }: { data: Transaction[]; onSelect: (x: Transaction) => void }) { return <div className="v3-table"><table><thead><tr><th>Reference</th><th>Type</th><th>Amount</th><th>Status</th><th>Created</th></tr></thead><tbody>{data.map(t => <tr key={t.id} onClick={() => onSelect(t)} className="click"><td><b>{t.reference}</b><small>{t.description || "Financial transaction"}</small></td><td>{t.type}</td><td>{money(t.amount, t.currency)}</td><td><span className={`v3-status ${statusTone(t.status)}`}>{t.status}</span></td><td>{date(t.createdAt)}</td></tr>)}</tbody></table></div>; }
-function GenericTable({ data, preferred, onSelect, actionKey, onAction }: { data: Row[]; preferred: string[]; onSelect: (x: Row) => void; actionKey?: string; onAction?: (id: string) => void }) { const keys = preferred.filter(k => data.some(r => r[k] !== undefined)); return <div className="v3-table"><table><thead><tr>{keys.map(k => <th key={k}>{k.replace(/[A-Z]/g, m => ` ${m}`).toUpperCase()}</th>)}{actionKey && <th>Action</th>}</tr></thead><tbody>{data.map((r, i) => <tr key={String(r.id ?? i)} className="click" onClick={() => onSelect(r)}>{keys.map(k => <td key={k}>{k.toLowerCase().includes("date") || k.toLowerCase().includes("at") ? date(r[k]) : k === "status" || k === "decision" || k === "active" ? <span className={`v3-status ${statusTone(r[k])}`}>{text(r[k])}</span> : text(r[k])}</td>)}{actionKey && <td><button className="v3-danger" onClick={e => { e.stopPropagation(); if (r[actionKey]) onAction?.(String(r[actionKey])); }}>Delete</button></td>}</tr>)}</tbody></table></div>; }
-function Analytics({ overview, tx, payments, risk, accounts, currency }: { overview: OverviewData | null; tx: TransactionsResponse | null; payments: unknown; risk: unknown; accounts: unknown; currency: string }) { const p = payments && typeof payments === "object" ? payments as Row : {}; const r = risk && typeof risk === "object" ? risk as Row : {}; const a = accounts && typeof accounts === "object" ? accounts as Row : {}; return <div className="v3-stack"><div className="v3-kpis"><Kpi label="Payment volume" value={money(overview?.payments.volume, currency)} note={`${num(overview?.payments.total)} total payments`}/><Kpi label="Transaction volume" value={money(overview?.transactions.volume, currency)} note={`${num(overview?.transactions.total)} transactions`}/><Kpi label="Account balance" value={money(overview?.accounts.balance, currency)} note={`${num(overview?.accounts.total)} accounts`}/><Kpi label="Average risk" value={Number(overview?.risk.averageScore ?? 0).toFixed(1)} note="Current assessment score"/></div><div className="v3-overview-grid"><Panel title="Payment analytics" eyebrow="FINANCIAL PERFORMANCE"><div className="v3-analytics-list"><MetricLine label="Completed payments" value={num(overview?.payments.completed)}/><MetricLine label="Failed payments" value={num(overview?.payments.failed)}/><MetricLine label="Pending payments" value={num(overview?.payments.pending)}/><MetricLine label="Processing payments" value={num(overview?.payments.processing)}/><MetricLine label="Success rate" value={`${Number(overview?.payments.successRate ?? 0).toFixed(1)}%`}/>{Object.entries(p).slice(0, 3).map(([k,v]) => <MetricLine key={k} label={pretty(k)} value={text(v)}/>)}</div></Panel><Panel title="Risk & control" eyebrow="CONTROL HEALTH"><div className="v3-analytics-list"><MetricLine label="Allowed decisions" value={num(overview?.risk.allowed)}/><MetricLine label="Review decisions" value={num(overview?.risk.review)}/><MetricLine label="Blocked decisions" value={num(overview?.risk.blocked)}/><MetricLine label="Ledger balance" value={overview?.ledger.balanced ? "Balanced" : "Review required"}/>{Object.entries(r).slice(0, 3).map(([k,v]) => <MetricLine key={k} label={pretty(k)} value={text(v)}/>)}</div></Panel></div><Panel title="Transaction mix" eyebrow="VOLUME & DISTRIBUTION"><div className="v3-analytics-list">{Object.entries(tx?.byStatus ?? {}).map(([k,v]) => <MetricLine key={k} label={`${pretty(k)} transactions`} value={num(v)}/>)}{Object.entries(tx?.byType ?? {}).map(([k,v]) => <MetricLine key={`t-${k}`} label={`${pretty(k)} type`} value={num(v)}/>)}{Object.entries(a).slice(0, 5).map(([k,v]) => <MetricLine key={`a-${k}`} label={pretty(k)} value={text(v)}/>)}</div></Panel></div>; }
-function MetricLine({ label, value }: { label: string; value: string }) { return <div className="v3-metric-line"><span>{label}</span><b>{value}</b></div>; }
-function pretty(k: string) { return k.replace(/([A-Z])/g, " $1").replace(/[_-]/g, " ").replace(/^./, x => x.toUpperCase()); }
-function Field({ label, children, wide }: { label: string; children: React.ReactNode; wide?: boolean }) { return <label className={`v3-field ${wide ? "wide" : ""}`}><span>{label}</span>{children}</label>; }
-function Modal({ title, close, children }: { title: string; close: () => void; children: React.ReactNode }) { return <div className="v3-modal-backdrop" onClick={close}><div className="v3-modal" onClick={e => e.stopPropagation()}><header><div><small>VOLTIS OPERATIONS</small><h2>{title}</h2></div><button className="v3-icon" onClick={close}><X size={17}/></button></header>{children}</div></div>; }
-function ModalActions({ saving, submit, label }: { saving: boolean; submit: () => void; label: string }) { return <div className="v3-modal-actions"><button className="v3-secondary" type="button">Cancel</button><button className="v3-primary" onClick={submit} disabled={saving}>{saving ? "Saving…" : label}</button></div>; }
