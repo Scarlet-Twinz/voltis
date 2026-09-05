@@ -18,12 +18,19 @@ jobs:
           POSTGRES_PASSWORD: voltis_dev_password
           POSTGRES_DB: voltis
         ports:
-          - 5436:5432
+          - 5432:5432
         options: >-
           --health-cmd="pg_isready -U voltis -d voltis"
-          --health-interval=10s
+          --health-interval=5s
           --health-timeout=5s
-          --health-retries=5
+          --health-retries=10
+
+    env:
+      DB_HOST: 127.0.0.1
+      DB_PORT: 5432
+      DB_USER: voltis
+      DB_PASSWORD: voltis_dev_password
+      DB_NAME: voltis
 
     steps:
       - name: Checkout
