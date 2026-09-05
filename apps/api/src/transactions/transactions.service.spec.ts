@@ -107,8 +107,8 @@ describe('TransactionsService concurrency', () => {
           new TransactionsService(
             transactionRepository,
             accountRepository,
-            dataSource,
             organizationRepository,
+            dataSource,
           );
 
         const transactionDto = {
