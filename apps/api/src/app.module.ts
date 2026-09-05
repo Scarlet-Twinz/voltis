@@ -26,6 +26,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
     ConfigModule.forRoot({
       isGlobal: true,
       cache: true,
+      envFilePath: ['apps/api/.env', '.env'],
     }),
 
     BullModule.forRootAsync({
