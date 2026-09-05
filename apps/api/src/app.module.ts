@@ -1,4 +1,4 @@
-﻿import { Module } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import {
   ConfigModule,
@@ -41,7 +41,7 @@ import { WebhooksModule } from './webhooks/webhooks.module.js';
           ),
           port: configService.get<number>(
             'REDIS_PORT',
-            6382,
+            6379,
           ),
           password:
             configService.get<string>(
