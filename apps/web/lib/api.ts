@@ -128,7 +128,6 @@ async function request<T>(
   options: RequestInit = {},
 ): Promise<T> {
   const token = getStoredToken();
-
   const headers = new Headers(options.headers);
 
   headers.set("Content-Type", "application/json");
@@ -214,6 +213,18 @@ export const api = {
       request<Organization>(
         `/organizations/${encodeURIComponent(organizationId)}`,
       ),
+
+    update: (
+      organizationId: string,
+      data: Partial<Pick<Organization, "name" | "slug" | "defaultCurrency">>,
+    ) =>
+      request<Organization>(
+        `/organizations/${encodeURIComponent(organizationId)}`,
+        {
+          method: "PATCH",
+          body: JSON.stringify(data),
+        },
+      ),
   },
 
   accounts: {
@@ -221,6 +232,12 @@ export const api = {
       request<Account[]>(
         `/accounts?${orgQuery(organizationId)}`,
       ),
+
+    create: (data: Record<string, unknown>) =>
+      request<Account>("/accounts", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     get: (accountId: string) =>
       request<Account>(
@@ -233,6 +250,12 @@ export const api = {
       request<Transaction[]>(
         `/transactions?${orgQuery(organizationId)}`,
       ),
+
+    create: (data: Record<string, unknown>) =>
+      request<Transaction>("/transactions", {
+        method: "POST",
+        body: JSON.stringify(data),
+      }),
 
     get: (transactionId: string) =>
       request<Transaction>(
