@@ -11,18 +11,14 @@
   background: var(--surface-2);
 }
 
-.settings-list > * {
-  min-width: 0;
-}
+.settings-list > * { min-width: 0; }
 
 .settings-list .setting-row {
   padding: 14px 16px;
   border-bottom: 1px solid var(--border);
 }
 
-.settings-list .setting-row:last-child {
-  border-bottom: 0;
-}
+.settings-list .setting-row:last-child { border-bottom: 0; }
 
 .setting-row {
   display: flex;
@@ -132,7 +128,6 @@
   background: rgba(240, 111, 121, 0.16);
 }
 
-/* Modal system: dialogs are deliberately isolated from normal page flow. */
 .modal-backdrop {
   position: fixed;
   inset: 0;
@@ -147,9 +142,7 @@
   animation: voltis-modal-in 140ms ease-out;
 }
 
-html[data-theme="light"] .modal-backdrop {
-  background: rgba(15, 23, 42, 0.38);
-}
+html[data-theme="light"] .modal-backdrop { background: rgba(15, 23, 42, 0.38); }
 
 .detail-modal {
   width: min(680px, 100%);
@@ -163,9 +156,7 @@ html[data-theme="light"] .modal-backdrop {
   box-shadow: var(--shadow-md);
 }
 
-.action-modal {
-  width: min(720px, 100%);
-}
+.action-modal { width: min(720px, 100%); }
 
 .detail-modal-header {
   flex: 0 0 auto;
@@ -197,9 +188,7 @@ html[data-theme="light"] .modal-backdrop {
   border-bottom: 1px solid var(--border);
 }
 
-.detail-list .setting-row:last-child {
-  border-bottom: 0;
-}
+.detail-list .setting-row:last-child { border-bottom: 0; }
 
 .action-modal > .muted-copy {
   flex: 0 0 auto;
@@ -242,62 +231,12 @@ html[data-theme="light"] .modal-backdrop {
   background: var(--surface-2);
 }
 
-/* Keep controls and data readable in light mode. */
 html[data-theme="light"] .organization-switcher,
-html[data-theme="light"] .nav-item:hover {
-  background: rgba(15, 23, 42, 0.025);
-}
+html[data-theme="light"] .nav-item:hover { background: rgba(15, 23, 42, 0.025); }
 
-html[data-theme="light"] .json-editor {
-  background: #fff;
-}
+html[data-theme="light"] .json-editor { background: #fff; }
 
-@keyframes voltis-modal-in {
-  from { opacity: 0; }
-  to { opacity: 1; }
-}
-
-@media (max-width: 720px) {
-  .modal-backdrop {
-    align-items: flex-end;
-    padding: 10px;
-  }
-
-  .detail-modal,
-  .action-modal {
-    max-height: calc(100vh - 20px);
-    border-radius: 16px;
-  }
-
-  .setting-row {
-    align-items: flex-start;
-    flex-direction: column;
-    gap: 5px;
-  }
-
-  .setting-row > span:last-child,
-  .setting-row strong:last-child {
-    max-width: 100%;
-    text-align: left;
-  }
-
-  .theme-setting {
-    grid-template-columns: 1fr;
-  }
-
-  .modal-actions {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-  }
-
-  .modal-actions button {
-    width: 100%;
-  }
-}
-
-.setting-row-control {
-  align-items: center;
-}
+.setting-row-control { align-items: center; }
 
 .settings-select {
   min-width: 128px;
@@ -312,16 +251,65 @@ html[data-theme="light"] .json-editor {
   cursor: pointer;
 }
 
-.settings-select:hover {
-  border-color: rgba(92, 168, 255, 0.28);
+.settings-select:hover { border-color: rgba(92, 168, 255, 0.28); }
+
+/* Analytics/readout polish: prevent compact values and JSON from collapsing into
+   a single unreadable text run when the dashboard has sparse data. */
+.section-panel pre,
+.analytics-panel pre,
+.analytics-card pre,
+.analytics-grid pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--bg-elevated);
+  color: var(--text-soft);
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.7;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+.section-panel code,
+.analytics-panel code,
+.analytics-card code,
+.analytics-grid code {
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  overflow-wrap: anywhere;
+}
+
+.section-panel p,
+.analytics-panel p,
+.analytics-card p,
+.analytics-grid p {
+  line-height: 1.6;
+}
+
+.section-panel strong,
+.analytics-panel strong,
+.analytics-card strong,
+.analytics-grid strong {
+  color: var(--text);
+}
+
+@keyframes voltis-modal-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 @media (max-width: 720px) {
-  .setting-row-control {
-    align-items: stretch;
-  }
-
-  .settings-select {
-    width: 100%;
-  }
+  .modal-backdrop { align-items: flex-end; padding: 10px; }
+  .detail-modal,
+  .action-modal { max-height: calc(100vh - 20px); border-radius: 16px; }
+  .setting-row { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .setting-row > span:last-child,
+  .setting-row strong:last-child { max-width: 100%; text-align: left; }
+  .theme-setting { grid-template-columns: 1fr; }
+  .modal-actions { display: grid; grid-template-columns: 1fr 1fr; }
+  .modal-actions button { width: 100%; }
+  .setting-row-control { align-items: stretch; }
+  .settings-select { width: 100%; }
 }
