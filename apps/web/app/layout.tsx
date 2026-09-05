@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import "./voltis-overrides.css";
 import "./dashboard-premium.css";
+import "./dashboard-final-polish.css";
 import { AuthProvider } from "../components/AuthProvider";
 
 export const metadata: Metadata = {
