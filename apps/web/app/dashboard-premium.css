@@ -409,6 +409,219 @@
   outline: 0;
 }
 
+/* ---------- final module polish ---------- */
+
+/* Ledger, reconciliation and webhook data should read as deliberate rows,
+   never as one dense block of text. */
+.ledger-grid,
+.ledger-list,
+.reconciliation-grid,
+.reconciliation-list,
+.webhook-grid,
+.webhooks-grid,
+.webhook-list,
+.webhooks-list,
+.records-grid,
+.record-grid,
+.record-list,
+.data-list {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 10px;
+  min-width: 0;
+}
+
+.ledger-row,
+.reconciliation-row,
+.webhook-row,
+.webhooks-row,
+.record-row,
+.data-row {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--surface-2);
+}
+
+.ledger-row > *,
+.reconciliation-row > *,
+.webhook-row > *,
+.webhooks-row > *,
+.record-row > *,
+.data-row > * {
+  min-width: 0;
+}
+
+.ledger-row:hover,
+.reconciliation-row:hover,
+.webhook-row:hover,
+.webhooks-row:hover,
+.record-row:hover,
+.data-row:hover {
+  border-color: var(--border-strong);
+  background: var(--blue-soft);
+}
+
+.ledger-row strong,
+.reconciliation-row strong,
+.webhook-row strong,
+.webhooks-row strong,
+.record-row strong,
+.data-row strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+}
+
+.ledger-row span,
+.reconciliation-row span,
+.webhook-row span,
+.webhooks-row span,
+.record-row span,
+.data-row span {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+/* Generic stacked data containers: consistent breathing room without
+   changing the working API/data behavior. */
+.section-panel > .data-table,
+.section-panel > .table-wrap,
+.section-panel > .records-table,
+.section-panel > .transactions-table {
+  margin-top: 0;
+}
+
+.section-panel > .data-table,
+.section-panel > .table-wrap,
+.section-panel > .records-table,
+.section-panel > .transactions-table,
+.section-panel > .ledger-list,
+.section-panel > .reconciliation-list,
+.section-panel > .webhook-list,
+.section-panel > .webhooks-list,
+.section-panel > .record-list,
+.section-panel > .data-list {
+  padding: 10px 14px 14px;
+}
+
+/* ---------- action modal / create-payment payload ---------- */
+[role="dialog"],
+.modal,
+.dialog,
+.action-modal {
+  width: min(680px, calc(100vw - 32px));
+  max-width: 680px;
+  max-height: min(86vh, 820px);
+  overflow: auto;
+  border: 1px solid var(--border-strong);
+  border-radius: 18px;
+  background: var(--surface);
+  box-shadow: var(--shadow-md);
+}
+
+[role="dialog"] form,
+.modal form,
+.dialog form,
+.action-modal form {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+}
+
+[role="dialog"] label,
+.modal label,
+.dialog label,
+.action-modal label {
+  display: grid;
+  gap: 7px;
+  color: var(--text-muted);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+
+[role="dialog"] input,
+[role="dialog"] select,
+[role="dialog"] textarea,
+.modal input,
+.modal select,
+.modal textarea,
+.dialog input,
+.dialog select,
+.dialog textarea,
+.action-modal input,
+.action-modal select,
+.action-modal textarea {
+  width: 100%;
+  min-width: 0;
+  border: 1px solid var(--border-strong);
+  border-radius: 10px;
+  background: var(--surface-2);
+  color: var(--text);
+  font-size: 12px;
+  line-height: 1.5;
+  outline: none;
+}
+
+[role="dialog"] input,
+[role="dialog"] select,
+.modal input,
+.modal select,
+.dialog input,
+.dialog select,
+.action-modal input,
+.action-modal select {
+  min-height: 42px;
+  padding: 0 12px;
+}
+
+[role="dialog"] textarea,
+.modal textarea,
+.dialog textarea,
+.action-modal textarea {
+  min-height: 180px;
+  padding: 13px 14px;
+  resize: vertical;
+  font-family: "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  tab-size: 2;
+}
+
+[role="dialog"] pre,
+.modal pre,
+.dialog pre,
+.action-modal pre {
+  margin: 0;
+  max-width: 100%;
+  overflow: auto;
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--bg-elevated);
+  color: var(--text-soft);
+  font: 11px/1.65 "DM Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+
+[role="dialog"] button,
+.modal button,
+.dialog button,
+.action-modal button {
+  min-height: 40px;
+  border-radius: 9px;
+}
+
 /* ---------- light mode ---------- */
 html[data-theme="light"] .section-panel,
 html[data-theme="light"] .analytics-panel,
@@ -457,6 +670,16 @@ html[data-theme="light"] .kpi-card {
   .analytics-panel {
     min-height: 250px;
   }
+
+  .ledger-row,
+  .reconciliation-row,
+  .webhook-row,
+  .webhooks-row,
+  .record-row,
+  .data-row {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
 }
 
 @media (max-width: 640px) {
@@ -498,5 +721,13 @@ html[data-theme="light"] .kpi-card {
     grid-template-columns: minmax(0, 1fr) minmax(72px, 38%);
     gap: 12px;
     min-height: 46px;
+  }
+
+  [role="dialog"],
+  .modal,
+  .dialog,
+  .action-modal {
+    width: calc(100vw - 20px);
+    border-radius: 14px;
   }
 }
