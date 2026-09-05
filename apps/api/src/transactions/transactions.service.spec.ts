@@ -32,7 +32,6 @@ describe('TransactionsService concurrency', () => {
           LedgerEntry,
         ],
         synchronize: true,
-        dropSchema: true,
       });
 
       await dataSource.initialize();
@@ -53,9 +52,11 @@ describe('TransactionsService concurrency', () => {
         const ledgerRepository =
           dataSource.getRepository(LedgerEntry);
 
+        const runId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
         const user = await userRepository.save(
           userRepository.create({
-            email: `concurrency-${Date.now()}@voltis.test`,
+            email: `concurrency-${runId}@voltis.test`,
             passwordHash: 'test-hash',
             firstName: 'Concurrency',
             lastName: 'Test',
@@ -66,8 +67,8 @@ describe('TransactionsService concurrency', () => {
         const organization =
           await organizationRepository.save(
             organizationRepository.create({
-              name: `Concurrency Test ${Date.now()}`,
-              slug: `concurrency-test-${Date.now()}`,
+              name: `Concurrency Test ${runId}`,
+              slug: `concurrency-test-${runId}`,
               defaultCurrency: 'USD',
               isActive: true,
               ownerId: user.id,
@@ -80,7 +81,7 @@ describe('TransactionsService concurrency', () => {
             accountRepository.create({
               organizationId: organization.id,
               organization,
-              code: 'CUSTOMER-FUNDS',
+              code: `CUSTOMER-FUNDS-${runId.slice(-8)}`,
               name: 'Customer Funds',
               type: AccountType.LIABILITY,
               currency: 'USD',
@@ -94,7 +95,7 @@ describe('TransactionsService concurrency', () => {
             accountRepository.create({
               organizationId: organization.id,
               organization,
-              code: 'CONCURRENCY-CASH',
+              code: `CONCURRENCY-CASH-${runId.slice(-8)}`,
               name: 'Concurrency Cash',
               type: AccountType.ASSET,
               currency: 'USD',
