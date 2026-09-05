@@ -3,9 +3,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import {
-  Repository,
-} from 'typeorm';
+import { Repository } from 'typeorm';
 
 import { Organization } from '../organizations/organization.entity.js';
 import {
@@ -75,33 +73,17 @@ export class RiskService {
 
     let score = 0;
 
-    const signals: Record<
-      string,
-      unknown
-    > = {};
+    const signals: Record<string, unknown> = {};
 
-    const amount =
-      BigInt(input.amount);
+    const amount = BigInt(input.amount);
+    const highValueThreshold = 1_000_000n;
+    const extremeValueThreshold = 10_000_000n;
 
-    const highValueThreshold =
-      1_000_000n;
-
-    const extremeValueThreshold =
-      10_000_000n;
-
-    if (
-      amount >=
-      extremeValueThreshold
-    ) {
+    if (amount >= extremeValueThreshold) {
       score += 70;
-
       signals.extremeAmount = true;
-    } else if (
-      amount >=
-      highValueThreshold
-    ) {
+    } else if (amount >= highValueThreshold) {
       score += 35;
-
       signals.highAmount = true;
     }
 
@@ -110,10 +92,7 @@ export class RiskService {
         .createQueryBuilder('payment')
         .where(
           'payment.organizationId = :organizationId',
-          {
-            organizationId:
-              input.organizationId,
-          },
+          { organizationId: input.organizationId },
         )
         .andWhere(
           'payment.createdAt >= NOW() - INTERVAL \'10 minutes\'',
@@ -122,90 +101,88 @@ export class RiskService {
 
     if (recentPayments >= 5) {
       score += 30;
-
       signals.velocity = {
         recentPayments,
         windowMinutes: 10,
       };
     }
 
-    if (
-      input.method === 'cash'
-    ) {
+    if (input.method === 'cash') {
       score += 5;
-
       signals.cashPayment = true;
     }
 
-    if (
-      input.currency !==
-      organization.defaultCurrency
-    ) {
+    if (input.currency !== organization.defaultCurrency) {
       score += 15;
-
-      signals.currencyMismatch =
-        true;
+      signals.currencyMismatch = true;
     }
 
-    let decision =
-      RiskDecision.ALLOW;
+    let decision = RiskDecision.ALLOW;
 
     if (score >= 70) {
-      decision =
-        RiskDecision.BLOCK;
+      decision = RiskDecision.BLOCK;
     } else if (score >= 40) {
-      decision =
-        RiskDecision.REVIEW;
+      decision = RiskDecision.REVIEW;
     }
 
     const explanation =
-      decision ===
-      RiskDecision.BLOCK
+      decision === RiskDecision.BLOCK
         ? 'Payment blocked because the calculated risk score is high'
-        : decision ===
-            RiskDecision.REVIEW
+        : decision === RiskDecision.REVIEW
           ? 'Payment requires review because risk signals exceeded the review threshold'
           : 'Payment passed the configured risk checks';
 
     const assessment =
       this.assessmentsRepository.create({
-        organizationId:
-          input.organizationId,
-
-        paymentId:
-          input.paymentId,
-
+        organizationId: input.organizationId,
+        paymentId: input.paymentId,
         score,
-
         decision,
-
         signals,
-
         explanation,
       });
 
     const savedAssessment =
-      await this.assessmentsRepository.save(
-        assessment,
-      );
+      await this.assessmentsRepository.save(assessment);
 
     return {
-      assessment:
-        savedAssessment,
+      assessment: savedAssessment,
       score,
       decision,
-      allowed:
-        decision ===
-        RiskDecision.ALLOW,
+      allowed: decision === RiskDecision.ALLOW,
     };
   }
 
   async findForPayment(
+    userId: string,
     paymentId: string,
   ) {
+    const payment =
+      await this.paymentsRepository.findOne({
+        where: { id: paymentId },
+      });
+
+    if (!payment) {
+      throw new NotFoundException('Payment not found');
+    }
+
+    const organization =
+      await this.organizationsRepository.findOne({
+        where: {
+          id: payment.organizationId,
+          ownerId: userId,
+          isActive: true,
+        },
+      });
+
+    if (!organization) {
+      throw new NotFoundException('Payment not found');
+    }
+
     return this.assessmentsRepository.find({
       where: {
         paymentId,
+        organizationId: organization.id,
       },
       order: {
         createdAt: 'DESC',
