@@ -13,8 +13,7 @@ import { JwtAuthGuard } from '../auth/jwt-auth.guard.js';
 
 import { ReconciliationService } from './reconciliation.service.js';
 
-interface AuthenticatedRequest
-  extends Request {
+interface AuthenticatedRequest extends Request {
   user: {
     sub: string;
     email: string;
@@ -25,15 +24,13 @@ interface AuthenticatedRequest
 @UseGuards(JwtAuthGuard)
 export class ReconciliationController {
   constructor(
-    private readonly reconciliationService:
-      ReconciliationService,
+    private readonly reconciliationService: ReconciliationService,
   ) {}
 
   @Post()
   reconcile(
     @Req() request: AuthenticatedRequest,
-    @Query('organizationId')
-    organizationId: string,
+    @Query('organizationId') organizationId: string,
   ) {
     return this.reconciliationService.reconcile(
       request.user.sub,
@@ -44,8 +41,7 @@ export class ReconciliationController {
   @Get()
   findRuns(
     @Req() request: AuthenticatedRequest,
-    @Query('organizationId')
-    organizationId: string,
+    @Query('organizationId') organizationId: string,
   ) {
     return this.reconciliationService.findRunsForUser(
       request.user.sub,
@@ -58,17 +54,25 @@ export class ReconciliationController {
     @Req() request: AuthenticatedRequest,
     @Param('id') runId: string,
   ) {
-    const run =
-      await this.reconciliationService.getRun(
-        runId,
-      );
+    const run = await this.reconciliationService.getRun(runId);
 
     if (!run) {
-      return {
-        found: false,
-      };
+      return { found: false };
     }
 
-    return run;
+    // getRun is an internal lookup. Never return a record until its
+    // organization has been verified against the authenticated user.
+    const ownedRuns = await this.reconciliationService.findRunsForUser(
+      request.user.sub,
+      run.organizationId,
+    );
+
+    const ownedRun = ownedRuns.find((candidate) => candidate.id === run.id);
+
+    if (!ownedRun) {
+      return { found: false };
+    }
+
+    return ownedRun;
   }
 }
