@@ -34,7 +34,12 @@ const dataSource = new DataSource({
     WebhookDelivery,
     RiskAssessment,
   ],
-  migrations: ['dist/database/migrations/*.js'],
+  migrations: [
+    'apps/api/src/database/migrations/*.ts',
+    'apps/api/dist/database/migrations/*.js',
+    'src/database/migrations/*.ts',
+    'dist/database/migrations/*.js',
+  ],
   synchronize: false,
 });
 
