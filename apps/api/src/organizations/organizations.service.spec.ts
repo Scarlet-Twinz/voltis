@@ -15,9 +15,14 @@ describe('OrganizationsService', () => {
       findOne: vi.fn(),
     };
 
+    const accountsRepository = {
+      find: vi.fn(),
+    };
+
     const service = new OrganizationsService(
       organizationsRepository as never,
       usersRepository as never,
+      accountsRepository as never,
     );
 
     expect(service).toBeDefined();
