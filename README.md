@@ -2,22 +2,35 @@
 
 **Payment and ledger infrastructure platform for reliable financial workflows.**
 
-VOLTIS is a full-stack financial systems project that models payment processing, double-entry ledger state, reconciliation, risk assessment, asynchronous work, webhooks, analytics, and realtime operational updates.
+VOLTIS is a full-stack financial systems project focused on modeling the state transitions that matter when software represents money: accounts, double-entry ledger entries, payments, idempotency, reconciliation, risk decisions, webhooks, asynchronous processing, and realtime operational visibility.
 
-The system combines a **NestJS API, BullMQ worker, Next.js dashboard, PostgreSQL, Redis, TypeORM, Socket.IO, Docker Compose, and GitHub Actions** in a single pnpm monorepo.
+> **Engineering project, not production banking infrastructure.** The repository explicitly documents the additional security, compliance, infrastructure, and operational controls required before real-world financial deployment.
 
-## Product Preview
+## Financial State Model
 
-The dashboard acts as a financial operations console for monitoring accounts, transactions, payments, ledger activity, analytics, and risk signals.
+```text
+Client
+  │
+  ▼
+NestJS API
+  │
+  ├── Accounts / Transactions
+  ├── Payments
+  ├── Ledger
+  ├── Risk
+  ├── Reconciliation
+  └── Webhooks
+  │
+  ├──────────────► PostgreSQL / TypeORM
+  │
+  ├──────────────► Redis / BullMQ ───► Worker
+  │
+  └──────────────► Socket.IO ─────────► Dashboard
+```
 
-## Core Features
+The important boundary is financial state: payment operations and ledger movement are modeled separately so the system can represent what happened, reconcile it, and investigate discrepancies.
 
-### Authentication & organizations
-
-- JWT-based authentication
-- User registration and login
-- Organization/workspace isolation
-- Organization membership and ownership
+## Core Domains
 
 ### Accounts & ledger
 
@@ -27,12 +40,12 @@ The dashboard acts as a financial operations console for monitoring accounts, tr
 - Transaction records linked to ledger movement
 - Explicit TypeORM migrations
 
-### Payments
+### Payment processing
 
 - Payment creation and processing workflows
 - Idempotency keys
 - Request fingerprinting for repeated requests
-- Background processing through BullMQ
+- BullMQ background processing
 - Dedicated worker service
 
 ### Reconciliation
@@ -40,7 +53,7 @@ The dashboard acts as a financial operations console for monitoring accounts, tr
 - Reconciliation runs
 - Discrepancy records
 - Comparison of payment, transaction, and ledger state
-- Operational investigation workflow
+- Explicit operational investigation workflow
 
 ### Risk
 
@@ -59,107 +72,53 @@ The dashboard acts as a financial operations console for monitoring accounts, tr
 
 - Socket.IO gateway
 - Realtime event service
-- Dashboard updates without constant page refreshes
+- Dashboard updates without constant refreshes
 
-### Analytics & administration
+### Organizations & authentication
 
-- Financial and operational analytics endpoints
-- Administrative operations
-- Dashboard views for monitoring system activity
-
-## Architecture
-
-```text
-                         ┌────────────────────────┐
-                         │     Next.js Web App     │
-                         │   Financial Operations  │
-                         │        Dashboard        │
-                         └────────────┬───────────┘
-                                      │
-                             HTTP / Socket.IO
-                                      │
-                                      ▼
-                         ┌────────────────────────┐
-                         │       NestJS API       │
-                         │                        │
-                         │ Auth • Organizations   │
-                         │ Accounts • Transactions│
-                         │ Ledger • Payments      │
-                         │ Risk • Reconciliation  │
-                         │ Webhooks • Analytics   │
-                         └───────┬────────┬───────┘
-                                 │        │
-                       PostgreSQL│        │Redis / BullMQ
-                                 │        │
-                                 ▼        ▼
-                         ┌───────────┐ ┌──────────────┐
-                         │ PostgreSQL│ │ Worker       │
-                         │ TypeORM   │ │ Payment Jobs │
-                         └───────────┘ └──────────────┘
-```
-
-### Request flow
-
-```text
-Client request
-     │
-     ▼
-Authentication + validation
-     │
-     ▼
-Domain controller / service
-     │
-     ├──► PostgreSQL / TypeORM
-     ├──► Redis / BullMQ ───► Worker
-     └──► Socket.IO ────────► Connected clients
-```
-
-Payment processing and other retryable background work are separated from HTTP request handling through a BullMQ queue and dedicated worker.
+- JWT authentication
+- User registration/login
+- Organization/workspace isolation
+- Membership and ownership
 
 ## Engineering Highlights
 
-### Double-entry accounting model
+### Double-entry accounting
 
-Transactions are represented alongside ledger entries and accounts, providing an auditable model for movement of value.
+Transactions are represented alongside ledger entries and accounts so movement of value has an auditable domain model rather than being treated as a single mutable balance field.
 
-### Idempotent payment operations
+### Idempotent operations
 
-Payment requests use an idempotency key and request fingerprint so repeated requests can be recognized instead of blindly creating duplicate operations.
+Payment requests use an idempotency key and request fingerprint to recognize repeated requests instead of blindly creating duplicate operations.
 
-### Reconciliation
+### Reconciliation as a first-class domain
 
-Reconciliation is modeled through runs and discrepancies, providing an explicit workflow for comparing financial states.
+Reconciliation is represented through runs and discrepancies rather than hidden inside a one-off report. This makes investigation part of the system model.
 
-### Risk decisioning
+### Async processing
 
-Risk assessment records the score, decision, signals, and explanation associated with an assessment.
+Retryable/background work is moved behind Redis and BullMQ. HTTP request handling therefore does not need to own every long-running operation.
 
-### Asynchronous processing
+### Explicit migrations
 
-Redis and BullMQ provide the queue boundary between the API and worker, supporting workload isolation and retry-oriented processing.
-
-### Realtime events
-
-Socket.IO provides a realtime channel for reflecting operational changes in connected dashboard clients.
+Automatic schema synchronization is disabled. TypeORM migrations represent schema changes explicitly and are validated through the development/CI workflow.
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
 | Frontend | Next.js 14, React 18, TypeScript |
-| UI | CSS, Lucide React |
 | API | NestJS 12, TypeScript |
 | Authentication | JWT, Passport, bcrypt |
-| Database | PostgreSQL 16 |
-| ORM | TypeORM |
+| Database | PostgreSQL 16, TypeORM |
 | Queue | BullMQ |
-| Cache / broker | Redis 7 |
+| Broker | Redis 7 |
 | Realtime | Socket.IO |
 | Validation | class-validator, class-transformer |
 | Testing | Vitest, Supertest |
 | Infrastructure | Docker Compose |
 | CI | GitHub Actions |
-| Package manager | pnpm 11.24 |
+| Workspace | pnpm monorepo |
 | Runtime | Node.js 22 |
 
 ## Repository Structure
@@ -170,7 +129,6 @@ voltis/
 │   ├── api/
 │   │   └── src/
 │   │       ├── accounts/
-│   │       ├── admin/
 │   │       ├── analytics/
 │   │       ├── auth/
 │   │       ├── database/
@@ -181,39 +139,23 @@ voltis/
 │   │       ├── reconciliation/
 │   │       ├── risk/
 │   │       ├── transactions/
-│   │       ├── users/
 │   │       └── webhooks/
 │   ├── web/
 │   └── worker/
 ├── .github/workflows/ci.yml
 ├── docs/screenshots/
-├── .env.example
-├── Dockerfile
 ├── docker-compose.yml
-├── package.json
-├── pnpm-lock.yaml
+├── Dockerfile
 └── pnpm-workspace.yaml
 ```
 
-## Getting Started
+## Local Development
 
 ### Prerequisites
-
-Install:
 
 - Node.js 22
 - pnpm 11.24+
 - Docker Desktop with Docker Compose
-
-Verify:
-
-```bash
-node --version
-pnpm --version
-docker --version
-```
-
-### Install
 
 ```bash
 git clone https://github.com/Scarlet-Twinz/voltis.git
@@ -221,50 +163,15 @@ cd voltis
 pnpm install
 ```
 
-### Configure environment
-
-macOS/Linux:
-
-```bash
-cp apps/api/.env.example apps/api/.env
-cp .env.example .env
-```
-
-Windows PowerShell:
-
-```powershell
-Copy-Item apps/api/.env.example apps/api/.env
-Copy-Item .env.example .env
-```
-
-Use local development values and never commit real credentials.
-
-### Start infrastructure
+Configure the environment templates, then start infrastructure:
 
 ```bash
 docker compose up -d postgres redis
-```
-
-Local host ports:
-
-```text
-PostgreSQL → localhost:5432
-Redis      → localhost:6383
-```
-
-### Run migrations
-
-```bash
 pnpm --filter api migration:run
-```
-
-### Start the stack
-
-```bash
 pnpm dev
 ```
 
-Endpoints:
+Default endpoints:
 
 ```text
 Dashboard → http://localhost:3000
@@ -272,12 +179,10 @@ API       → http://localhost:4000
 Health    → http://localhost:4000/health
 ```
 
-Or run services separately:
+For the complete containerized stack:
 
 ```bash
-pnpm --filter api start:dev
-pnpm --filter worker start:dev
-pnpm --filter web dev
+docker compose up --build
 ```
 
 ## Testing & Quality
@@ -289,93 +194,23 @@ pnpm typecheck
 pnpm build
 ```
 
-API:
+API and worker suites also provide targeted unit/E2E commands. GitHub Actions validates dependency installation, tests, linting, type checking, and builds on pushes and pull requests targeting `main`.
 
-```bash
-pnpm --filter api test
-pnpm --filter api test:e2e
-pnpm --filter api typecheck
-pnpm --filter api build
-```
+## Security Boundary
 
-Worker:
+VOLTIS models financial-system engineering patterns but does not claim production banking readiness.
 
-```bash
-pnpm --filter worker test
-pnpm --filter worker test:e2e
-pnpm --filter worker typecheck
-pnpm --filter worker build
-```
+Before production use, additional controls would be required, including managed secrets and key rotation, TLS, hardened authentication/authorization, rate limiting, audit logging, monitoring, private networking, threat modeling, security review, and applicable regulatory/compliance controls.
 
-Web:
-
-```bash
-pnpm --filter web typecheck
-pnpm --filter web build
-```
-
-GitHub Actions validates dependency installation, build, tests, linting, and type checking on pushes and pull requests targeting `main`.
-
-## Database Migrations
-
-VOLTIS uses explicit TypeORM migrations with automatic schema synchronization disabled.
-
-```bash
-pnpm --filter api migration:run
-pnpm --filter api migration:revert
-```
-
-Migration files live under:
-
-```text
-apps/api/src/database/migrations/
-```
-
-## Docker
-
-Build and start the complete containerized stack:
-
-```bash
-docker compose up --build
-```
-
-Check services:
-
-```bash
-docker compose ps
-```
-
-The Compose configuration includes health checks and service dependencies for PostgreSQL, Redis, API, worker, and web services.
-
-## Security Notes
-
-VOLTIS models financial-system engineering patterns but is not presented as production banking infrastructure.
-
-Before production use, additional controls would be required, including managed secret storage and key rotation, TLS, hardened authentication and authorization, rate limiting, audit logging, monitoring, private networking, observability, threat modeling, security review, and applicable compliance controls.
-
-Real secrets remain outside source control. Use the committed environment templates for local configuration.
+Real secrets remain outside source control.
 
 ## Current Status
 
 **Functional full-stack financial systems platform.**
 
-Implemented areas include authentication, organization isolation, accounts, transactions, double-entry ledger, payment processing, idempotency, background jobs, reconciliation, risk assessment, webhooks, analytics, realtime events, dedicated worker processing, database migrations, tests, Docker infrastructure, CI, and a responsive light/dark operations dashboard.
+Implemented areas include authentication, organization isolation, accounts, transactions, double-entry ledger, payment processing, idempotency, background jobs, reconciliation, risk assessment, webhooks, analytics, realtime events, database migrations, tests, Docker infrastructure, CI, and a responsive operations dashboard.
 
-A public hosted deployment is not currently provided; run the system locally using the Getting Started instructions.
-
-## Engineering Focus
-
-VOLTIS focuses on:
-
-- financial state and double-entry ledger modeling;
-- idempotent payment operations;
-- reconciliation and discrepancy handling;
-- risk assessment and decision recording;
-- asynchronous job processing;
-- realtime operational updates;
-- modular backend architecture;
-- database migrations and data integrity;
-- automated testing and CI.
+A public hosted deployment is not currently provided.
 
 ## License
 
@@ -385,6 +220,4 @@ MIT
 
 **Anthony Emmanuella Mmasinachi**
 
-Full-stack developer focused on frontend engineering, backend systems, APIs, automation, databases, realtime applications, and practical software architecture.
-
-**GitHub:** https://github.com/Scarlet-Twinz
+Full-stack and systems engineer focused on backend architecture, data integrity, distributed processing, realtime systems, networking, AI integration, and practical software engineering.
