@@ -221,3 +221,9 @@ MIT
 **Anthony Emmanuella Mmasinachi**
 
 Full-stack and systems engineer focused on backend architecture, data integrity, distributed processing, realtime systems, networking, AI integration, and practical software engineering.
+
+## Project Links
+
+- **Repository:** https://github.com/Scarlet-Twinz/voltis
+- **Author:** Anthony Emmanuella Mmasinachi
+- **GitHub:** https://github.com/Scarlet-Twinz
