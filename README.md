@@ -1,4 +1,4 @@
-#  VOLTIS
+# VOLTIS
 
 **Payment and ledger infrastructure platform for reliable financial workflows.**
 
