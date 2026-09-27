@@ -216,6 +216,9 @@ A public hosted deployment is not currently provided.
 
 MIT
 
+
+The README focuses on the implemented financial-system boundaries and the engineering decisions behind them rather than presenting it as a production banking service.
+
 ## Author
 
 **Anthony Emmanuella Mmasinachi**
