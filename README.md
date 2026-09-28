@@ -212,21 +212,9 @@ Implemented areas include authentication, organization isolation, accounts, tran
 
 A public hosted deployment is not currently provided.
 
+
 ## License
 
-MIT
+MIT License.
 
-
-The README focuses on the implemented financial-system boundaries and the engineering decisions behind them rather than presenting it as a production banking service.
-
-## Author
-
-**Anthony Emmanuella Mmasinachi**
-
-Full-stack and systems engineer focused on backend architecture, data integrity, distributed processing, realtime systems, networking, AI integration, and practical software engineering.
-
-## Project Links
-
-- **Repository:** https://github.com/Scarlet-Twinz/voltis
-- **Author:** Anthony Emmanuella Mmasinachi
-- **GitHub:** https://github.com/Scarlet-Twinz
+See [LICENSE](LICENSE) for the full license text.
